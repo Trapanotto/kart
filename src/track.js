@@ -96,6 +96,42 @@ export class Track {
       if (!this.grid.has(k)) this.grid.set(k, []);
       this.grid.get(k).push(i);
     });
+    // Brücken: wo die Strecke über einen anderen Streckenteil führt
+    this.bridge = new Uint8Array(N);
+    if (def.shape.type === 'lemniscate') this.bridge.fill(1);
+    else {
+      const raw = new Uint8Array(N);
+      for (let i = 0; i < N; i++) {
+        const p = this.P[i];
+        const reach = this.fence[i] * 2 + 6 + Math.max(0, p.y - this.groundY) * 1.1;
+        const cx = Math.floor(p.x / this.cell), cz = Math.floor(p.z / this.cell);
+        const rc = Math.ceil(reach / this.cell);
+        outer: for (let dx = -rc; dx <= rc; dx++) for (let dz = -rc; dz <= rc; dz++) {
+          for (const j of this.grid.get((cx + dx) + ',' + (cz + dz)) || []) {
+            const di = Math.abs(i - j);
+            if (Math.min(di, N - di) < 30) continue;
+            const q = this.P[j];
+            if (q.y < p.y - 5 && Math.hypot(q.x - p.x, q.z - p.z) < reach) { raw[i] = 1; break outer; }
+          }
+        }
+      }
+      for (let i = 0; i < N; i++) if (raw[i]) for (let k = -6; k <= 6; k++) this.bridge[(i + k + N) % N] = 1;
+    }
+  }
+
+  // Abstand zum nächsten anderen Streckenteil (nicht die Nachbarpunkte)
+  nearestOther(i) {
+    const p = this.P[i], N = this.N;
+    let best = Infinity;
+    const cx = Math.floor(p.x / this.cell), cz = Math.floor(p.z / this.cell);
+    for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) {
+      for (const j of this.grid.get((cx + dx) + ',' + (cz + dz)) || []) {
+        const di = Math.abs(i - j);
+        if (Math.min(di, N - di) < 40) continue;
+        best = Math.min(best, Math.hypot(this.P[j].x - p.x, this.P[j].z - p.z));
+      }
+    }
+    return best;
   }
 
   key(x, z) { return Math.floor(x / this.cell) + ',' + Math.floor(z / this.cell); }
@@ -275,8 +311,8 @@ export class Track {
     group.add(fence);
 
     // Böschungen bzw. Brückenpfeiler
-    if (this.def.shape.type === 'lemniscate') this.buildBridge(group, th);
-    else this.buildEmbankment(group, th);
+    if (this.def.shape.type !== 'lemniscate') this.buildEmbankment(group, th);
+    if (this.bridge.some((b) => b)) this.buildBridge(group, th);
 
     // Rampen-Vorderseite + Streifen
     const rampMat = new THREE.MeshStandardMaterial({ color: th.curb[1], roughness: 0.5 });
@@ -328,7 +364,177 @@ export class Track {
     this.buildStart(group, th);
     this.buildSky(scene, th);
     this.buildScenery(group, th, settings);
+    this.buildDetails(group, th, settings);
     return group;
+  }
+
+  // Details: Kurvenschilder, Fähnchen, Laternen, Tribüne, Randpflanzen
+  buildDetails(group, th, settings) {
+    const N = this.N, r = rng(N * 7 + 3);
+    const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _p = new THREE.Vector3(), _s = new THREE.Vector3(1, 1, 1);
+    const up = new THREE.Vector3(0, 1, 0);
+    const inst = (geo, mat, list, shadow = false, colors = null) => {
+      if (!list.length) return null;
+      const im = new THREE.InstancedMesh(geo, mat, list.length);
+      list.forEach((m, i) => im.setMatrixAt(i, m));
+      if (colors) colors.forEach((c, i) => im.setColorAt(i, c));
+      im.castShadow = shadow && settings.shadows;
+      im.receiveShadow = true;
+      im.computeBoundingSphere();
+      group.add(im);
+      return im;
+    };
+    const place = (x, y, z, yaw, sx = 1, sy = 1, sz = 1) => {
+      _q.setFromAxisAngle(up, yaw);
+      return new THREE.Matrix4().compose(_p.set(x, y, z), _q, _s.set(sx, sy, sz));
+    };
+    const free = (i) => !this.bridge[i] && !this.gap[i] && this.nearestOther(i) > 45;
+
+    // 1) Kurvenschilder (Pfeile) an der Kurvenaussenseite
+    const chevTex = (() => {
+      const c = document.createElement('canvas');
+      c.width = 128; c.height = 64;
+      const x = c.getContext('2d');
+      x.fillStyle = th.curb[1]; x.fillRect(0, 0, 128, 64);
+      x.fillStyle = '#FFFFFF';
+      for (const ox of [10, 52, 94]) { x.beginPath(); x.moveTo(ox, 8); x.lineTo(ox + 22, 32); x.lineTo(ox, 56); x.lineTo(ox + 12, 56); x.lineTo(ox + 34, 32); x.lineTo(ox + 12, 8); x.fill(); }
+      const t = new THREE.CanvasTexture(c);
+      t.colorSpace = THREE.SRGBColorSpace;
+      return t;
+    })();
+    const signs = { 1: [], '-1': [] }, posts = [];
+    for (let i = 0; i < N; i += 5) {
+      const a = this.T[(i - 8 + N) % N], b = this.T[(i + 8) % N];
+      const curve = Math.atan2(a.x * b.z - a.z * b.x, a.x * b.x + a.z * b.z);
+      if (Math.abs(curve) < 0.32 || this.gap[i]) continue;
+      const dir = curve > 0 ? 1 : -1; // 1 = Rechtskurve
+      const lat = -dir * (this.fence[i] + 1.2);
+      const p = this.P[i], R = this.R[i];
+      const x = p.x + R.x * lat, z = p.z + R.z * lat;
+      const yaw = this.headingAt(i) + Math.PI;
+      signs[dir].push(place(x, p.y + 2.1, z, yaw, 1, 1, 1));
+      posts.push(place(x, p.y + 1.0, z, 0, 1, 1, 1));
+    }
+    const signGeo = new THREE.PlaneGeometry(3.2, 1.6);
+    for (const d of [1, -1]) {
+      const mat = new THREE.MeshStandardMaterial({ map: chevTex, roughness: 0.6, side: THREE.DoubleSide });
+      if (d === -1) { mat.map = chevTex.clone(); mat.map.repeat.x = -1; mat.map.offset.x = 1; mat.map.wrapS = THREE.RepeatWrapping; mat.map.needsUpdate = true; }
+      inst(signGeo, mat, signs[d], true);
+    }
+    inst(new THREE.CylinderGeometry(0.12, 0.12, 2, 6), new THREE.MeshStandardMaterial({ color: '#8A8A90' }), posts);
+
+    // 2) Fähnchen-Girlanden über der Strecke
+    const poles = [], ropes = [], flags = [], flagCols = [];
+    const palette = [th.fence, th.fence2, th.curb[1], '#FFD447', '#7EC8F2', '#9ED36A'].map((c) => new THREE.Color(c));
+    for (let i = 40; i < N - 20; i += 75) {
+      if (!free(i)) continue;
+      const p = this.P[i], R = this.R[i], w = this.fence[i] + 0.8, yaw = this.headingAt(i);
+      for (const s of [-1, 1]) poles.push(place(p.x + R.x * s * w, p.y + 4.2, p.z + R.z * s * w, 0, 1, 1, 1));
+      ropes.push(place(p.x, p.y + 8.2, p.z, yaw + Math.PI / 2, w * 2, 1, 1));
+      const n = Math.floor(w * 2 / 1.6);
+      for (let k = 0; k <= n; k++) {
+        const l = -w + (k / n) * w * 2;
+        const sag = 0.9 * (1 - (l / w) ** 2);
+        flags.push(place(p.x + R.x * l, p.y + 7.6 - sag, p.z + R.z * l, yaw, 1, 1, 1));
+        flagCols.push(palette[k % palette.length]);
+      }
+    }
+    inst(new THREE.CylinderGeometry(0.18, 0.22, 8.4, 8), new THREE.MeshStandardMaterial({ color: th.fence2, roughness: 0.5 }), poles, true);
+    inst(new THREE.BoxGeometry(1, 0.06, 0.06), new THREE.MeshStandardMaterial({ color: '#FFFFFF' }), ropes);
+    const flagGeo = new THREE.ConeGeometry(0.55, 1.2, 3);
+    flagGeo.rotateX(Math.PI);
+    flagGeo.scale(1, 1, 0.15);
+    inst(flagGeo, new THREE.MeshStandardMaterial({ roughness: 0.6 }), flags, false, flagCols);
+
+    // 3) Laternen mit leuchtenden Kugeln
+    const lampPosts = [], lampBalls = [];
+    for (let i = 10; i < N; i += 22) {
+      if (this.gap[i] || this.bridge[i]) continue;
+      const s = (i / 22) % 2 ? 1 : -1;
+      const p = this.P[i], R = this.R[i], w = this.fence[i] + 1.6;
+      lampPosts.push(place(p.x + R.x * s * w, p.y + 2.2, p.z + R.z * s * w, 0));
+      lampBalls.push(place(p.x + R.x * s * w, p.y + 4.6, p.z + R.z * s * w, 0));
+    }
+    const glow = th.night || th.volcano || th.underwater ? 3 : 1.2;
+    inst(new THREE.CylinderGeometry(0.14, 0.2, 4.4, 8), new THREE.MeshStandardMaterial({ color: '#5A5560', roughness: 0.5 }), lampPosts);
+    inst(new THREE.SphereGeometry(0.55, 14, 10), new THREE.MeshStandardMaterial({ color: '#FFF4C2', emissive: th.night ? '#B6F3FF' : '#FFE08A', emissiveIntensity: glow }), lampBalls);
+
+    // 4) Zuschauertribüne mit Fans neben dem Start
+    const i0 = 8, p0 = this.P[i0], R0 = this.R[i0];
+    const side = this.nearestOther(i0) > 60 ? -1 : 1;
+    const tribune = new THREE.Group();
+    const standMat = new THREE.MeshStandardMaterial({ color: th.fence2, roughness: 0.7 });
+    for (let row = 0; row < 3; row++) {
+      const step = new THREE.Mesh(new THREE.BoxGeometry(34, 1.2 + row * 1.2, 2.4), standMat);
+      step.position.set(0, (1.2 + row * 1.2) / 2, row * 2.4);
+      step.castShadow = step.receiveShadow = true;
+      tribune.add(step);
+    }
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(36, 0.4, 9), new THREE.MeshStandardMaterial({ color: th.fence, roughness: 0.5 }));
+    roof.position.set(0, 8.5, 2.4);
+    roof.castShadow = true;
+    tribune.add(roof);
+    for (const x of [-17, 17]) {
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 8.5), standMat);
+      pole.position.set(x, 4.25, 6.4);
+      tribune.add(pole);
+    }
+    const fanBody = [], fanEyes = [], fanCols = [];
+    this.fans = [];
+    const fanPal = ['#F4EEE4', '#C8552B', '#8C6B4F', '#F7A8C6', '#E7C79F', '#2C3350', '#A0724B', '#7A5034', '#FFD447', '#9ED36A'].map((c) => new THREE.Color(c));
+    for (let row = 0; row < 3; row++) for (let k = 0; k < 14; k++) {
+      const fx = -15.5 + k * 2.35 + (r() - 0.5) * 0.6, fy = 1.2 + row * 1.2 + 0.8, fz = row * 2.4;
+      this.fans.push({ x: fx, y: fy, z: fz, ph: r() * 6, sp: 6 + r() * 4 });
+      fanCols.push(fanPal[Math.floor(r() * fanPal.length)]);
+    }
+    const fanGeo = new THREE.SphereGeometry(0.75, 14, 10);
+    const eyeGeo = new THREE.SphereGeometry(0.12, 8, 6);
+    this.fanMesh = new THREE.InstancedMesh(fanGeo, new THREE.MeshStandardMaterial({ roughness: 0.8 }), this.fans.length);
+    this.fanEyes = new THREE.InstancedMesh(eyeGeo, new THREE.MeshStandardMaterial({ color: '#1A1420', roughness: 0.2 }), this.fans.length * 2);
+    fanCols.forEach((c, i) => this.fanMesh.setColorAt(i, c));
+    this.fanMesh.castShadow = settings.shadows;
+    tribune.add(this.fanMesh, this.fanEyes);
+    void fanBody; void fanEyes;
+    const d = this.fence[i0] + 7;
+    tribune.position.set(p0.x + R0.x * side * d, p0.y, p0.z + R0.z * side * d);
+    // Tribüne schaut zur Strecke
+    tribune.rotation.y = this.headingAt(i0) + (side > 0 ? -Math.PI / 2 : Math.PI / 2);
+    group.add(tribune);
+    this.updateFans(0);
+
+    // 5) Dichte kleine Pflanzen direkt an der Bande
+    const small = { meadow: 'Flower', bamboo: 'Flower', cave: 'GlowShroom', honey: 'Flower', glacier: 'Crystal', reef: 'Seaweed', clouds: 'Cloud', volcano: 'LavaRock' }[this.def.theme] || 'Flower';
+    const tufts = [], rocks = [];
+    for (let i = 0; i < N; i += 2) {
+      if (this.gap[i] || this.bridge[i]) continue;
+      for (const s of [-1, 1]) {
+        if (r() < 0.55) continue;
+        const p = this.P[i], R = this.R[i], w = this.fence[i] + 1.4 + r() * 3;
+        const x = p.x + R.x * s * w, z = p.z + R.z * s * w;
+        if (this.nearestDist(x, z) < this.fence[i] + 1) continue;
+        const sc = small === 'Cloud' ? 0.5 + r() * 0.4 : 0.45 + r() * 0.5;
+        (r() < 0.75 ? tufts : rocks).push(place(x, p.y - (small === 'Cloud' ? 1.5 : 0), z, r() * 6.28, sc, sc, sc));
+      }
+    }
+    group.add(instanceProps(small, tufts, { shadows: false }));
+    group.add(instanceProps('Rock', rocks, { shadows: false }));
+  }
+
+  // Fans hüpfen und jubeln
+  updateFans(t) {
+    if (!this.fanMesh) return;
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3(1, 1.08, 1);
+    this.fans.forEach((f, i) => {
+      const y = f.y + Math.abs(Math.sin(t * f.sp + f.ph)) * 0.45;
+      m.compose(p.set(f.x, y, f.z), q, s);
+      this.fanMesh.setMatrixAt(i, m);
+      for (const e of [-1, 1]) {
+        m.compose(p.set(f.x + e * 0.28, y + 0.18, f.z - 0.68), q, new THREE.Vector3(1, 1, 1));
+        this.fanEyes.setMatrixAt(i * 2 + (e > 0 ? 1 : 0), m);
+      }
+    });
+    this.fanMesh.instanceMatrix.needsUpdate = true;
+    this.fanEyes.instanceMatrix.needsUpdate = true;
   }
 
   buildEmbankment(group, th) {
@@ -343,7 +549,8 @@ export class Track {
         const d0 = s * this.fence[k], d1 = s * (this.fence[k] + 0.5 + h * 1.1);
         pos.push(p.x + R.x * d0, p.y, p.z + R.z * d0, p.x + R.x * d1, this.groundY, p.z + R.z * d1);
         col.push(g2.r, g2.g, g2.b, g1.r, g1.g, g1.b);
-        if (i < N && !this.gap[k] && !this.gap[(k + 1) % N]) {
+        const k2 = (k + 1) % N;
+        if (i < N && !this.gap[k] && !this.gap[k2] && !this.bridge[k] && !this.bridge[k2]) {
           const a = base + i * 2;
           idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
         }
@@ -367,7 +574,7 @@ export class Track {
       const k = i % N, p = this.P[k], R = this.R[k];
       const F = this.fence[k];
       for (const [s, dy] of [[-F, 0], [-F, -1.4], [F, -1.4], [F, 0]]) pos.push(p.x + R.x * s, p.y + dy - 0.02, p.z + R.z * s);
-      if (i < N && !this.gap[k] && !this.gap[(k + 1) % N]) for (let q = 0; q < 3; q++) {
+      if (i < N && !this.gap[k] && !this.gap[(k + 1) % N] && this.bridge[k] && this.bridge[(k + 1) % N]) for (let q = 0; q < 3; q++) {
         const a = i * 4 + q, b = a + 4;
         idx.push(a, b, a + 1, a + 1, b, b + 1);
       }
@@ -380,9 +587,10 @@ export class Track {
     slab.receiveShadow = true;
     group.add(slab);
     // Wolken-Pfeiler, die nicht auf der unteren Fahrbahn stehen
-    const pillarMat = new THREE.MeshStandardMaterial({ color: '#FFFFFF', roughness: 0.9 });
+    const pillarMat = new THREE.MeshStandardMaterial({ color: th.cloudGround ? '#FFFFFF' : th.fence2, roughness: 0.8 });
     const geo = new THREE.CylinderGeometry(1.6, 2.4, 1, 14);
     for (let i = 0; i < N; i += 14) {
+      if (!this.bridge[i] || this.gap[i]) continue;
       const p = this.P[i];
       const h = p.y - this.groundY;
       for (const s of [-1, 1]) {
@@ -397,6 +605,7 @@ export class Track {
         m.scale.y = h;
         m.position.set(x, this.groundY + h / 2 - 1.4, z);
         group.add(m);
+        if (!th.cloudGround) continue;
         const puff = propClone('Cloud');
         puff.position.set(x, this.groundY + 6, z);
         puff.scale.setScalar(3.5);
@@ -557,7 +766,8 @@ export class Track {
     for (const f of [0.25, 0.7]) {
       const lm = landmarkClone(lmName);
       if (!lm) break;
-      const i = Math.round(f * this.N) % this.N;
+      let i = Math.round(f * this.N) % this.N;
+      for (let s = 0; s < this.N / 4 && (this.bridge[i] || this.gap[i] || this.nearestOther(i) < 45); s++) i = (i + 1) % this.N;
       const p = this.P[i], R = this.R[i];
       const side = lmName === 'Windmill' ? FENCE + 9 : 0;
       lm.position.set(p.x + R.x * side, p.y, p.z + R.z * side);
@@ -566,10 +776,13 @@ export class Track {
       lm.traverse((o) => { if (o.name.startsWith('Spin')) this.spinners.push({ o, axis: lmName === 'Windmill' ? 'z' : 'x' }); });
     }
     if (th.volcano) {
-      const v = new THREE.Mesh(new THREE.CylinderGeometry(22, 95, 110, 24, 1, true), new THREE.MeshStandardMaterial({ color: '#4A3438', roughness: 1, flatShading: true }));
-      v.position.set(0, this.groundY + 55, 0);
+      let minR = Infinity;
+      for (const p of this.P) minR = Math.min(minR, Math.hypot(p.x, p.z));
+      const vb = Math.max(30, Math.min(95, minR - 35)), vs = vb / 95;
+      const v = new THREE.Mesh(new THREE.CylinderGeometry(22 * vs, vb, 110 * vs, 24, 1, true), new THREE.MeshStandardMaterial({ color: '#4A3438', roughness: 1, flatShading: true }));
+      v.position.set(0, this.groundY + 55 * vs, 0);
       group.add(v);
-      const lava = new THREE.Mesh(new THREE.CircleGeometry(22, 24), new THREE.MeshBasicMaterial({ color: '#FF6A1A', toneMapped: false }));
+      const lava = new THREE.Mesh(new THREE.CircleGeometry(22 * vs, 24), new THREE.MeshBasicMaterial({ color: '#FF6A1A', toneMapped: false }));
       lava.rotation.x = -Math.PI / 2;
       lava.position.set(0, this.groundY + 108, 0);
       group.add(lava);

@@ -256,6 +256,7 @@ export class Race {
 
     // Effekte
     for (const s of this.track.spinners || []) s.o.rotation[s.axis] += dt * 0.8;
+    this.track.updateFans(this.clock);
     this.fx.glow.update(dt);
     this.fx.soft.update(dt);
     if (this.humans[0]) this.ambient.update(dt, this.humans[0].pos);

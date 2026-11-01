@@ -86,45 +86,45 @@ export const THEMES = {
 
 export const TRACKS = [
   { id: 'meadow', name: 'Kleeblatt-Wiese', cup: 0, theme: 'meadow',
-    shape: { type: 'radial', R0: 175, sx: 1.25, sz: 0.85, k: [[2, 0.12, 0.3], [3, 0.1, 1.0], [5, 0.03, 0.4]], h0: 2, hk: [[1, 2.5, 0], [2, 1.5, 1]] },
+    shape: { type: 'eight', a: 230, b: 255, c: 34, h0: 8, h1: 7, h3: 1, start: 0.25 },
     narrow: [[0.5, 0.62, 6.5]],
     ramps: [0.42], pads: [[0.16, 0], [0.7, -0.4], [0.7, 0.4]], items: [0.27, 0.58, 0.86],
     hazards: [{ type: 'bumper', f: 0.75, lat: 0 }] },
   { id: 'bamboo', name: 'Bambuswald-Tempel', cup: 0, theme: 'bamboo',
-    shape: { type: 'radial', R0: 185, sx: 1.05, sz: 1.0, k: [[3, 0.2, 0.3], [5, 0.06, 1.2], [7, 0.025, 0]], h0: 7, hk: [[2, 6, 0.5], [3, 3, 0]] },
+    shape: { type: 'trefoil', s: 62, h0: 12, h1: 10 },
     narrow: [[0.3, 0.4, 6]],
     ramps: [0.22], gaps: [0.74], pads: [[0.5, 0.45], [0.5, -0.45], [0.9, 0]], items: [0.12, 0.45, 0.64, 0.84],
     hazards: [{ type: 'log', f: 0.35 }, { type: 'log', f: 0.58 }, { type: 'log', f: 0.88 }] },
   { id: 'cave', name: 'Pilzhöhlen', cup: 0, theme: 'cave',
-    shape: { type: 'radial', R0: 170, sx: 1.15, sz: 0.95, k: [[4, 0.15, 0.0], [2, 0.12, 2.0], [6, 0.03, 1]], h0: 5, hk: [[1, 4, 0], [4, 1.5, 0.6]] },
+    shape: { type: 'limacon', s: 92, a: 2.3, b: 1.05, h0: 10, h1: 9, rot: 0.4 },
     narrow: [[0.62, 0.74, 6]],
     gaps: [0.58], pads: [[0.1, 0.5], [0.35, -0.5], [0.88, 0]], items: [0.2, 0.47, 0.72, 0.92],
     hazards: [{ type: 'bumper', f: 0.3, lat: -0.45 }, { type: 'bumper', f: 0.3, lat: 0.45 }, { type: 'bumper', f: 0.4, lat: 0 },
       { type: 'bumper', f: 0.82, lat: -0.5 }, { type: 'bumper', f: 0.82, lat: 0.5 }] },
   { id: 'honey', name: 'Honigfabrik', cup: 0, theme: 'honey',
-    shape: { type: 'radial', R0: 180, sx: 1.3, sz: 0.8, k: [[2, 0.16, 0.5], [3, 0.13, 0.0], [6, 0.035, 0]], h0: 4, hk: [[2, 3, 0.2]] },
+    shape: { type: 'eight', a: 215, b: 240, c: -48, h0: 9, h1: 8, h3: 1.5, start: 0.75 },
     narrow: [[0.55, 0.64, 6.5]],
     ramps: [0.32], gaps: [0.8], pads: [[0.5, 0], [0.97, 0.45]], items: [0.15, 0.45, 0.68, 0.9],
     puddles: [[0.24, 0.35], [0.24, -0.5], [0.52, -0.3], [0.62, 0.5], [0.88, -0.2]],
     hazards: [{ type: 'barrel', f: 0.4 }, { type: 'barrel', f: 0.6 }, { type: 'barrel', f: 0.93 }] },
   { id: 'glacier', name: 'Gletscher-Gipfel', cup: 1, theme: 'glacier',
-    shape: { type: 'radial', R0: 190, sx: 1.1, sz: 1.0, k: [[3, 0.22, 1.0], [1, 0.08, 0.0], [5, 0.04, 0.5]], h0: 16, hk: [[1, 13, 0], [2, 4, 1]] },
+    shape: { type: 'limacon', s: 100, a: 2.4, b: 1.2, h0: 18, h1: 14, h2: 3, rot: -1.2, sz: 0.85 },
     narrow: [[0.82, 0.92, 6.5]],
     gaps: [0.55], pads: [[0.2, 0], [0.75, -0.45], [0.75, 0.45]], items: [0.1, 0.35, 0.65, 0.88],
     ice: [[0.28, 0.45], [0.68, 0.78]],
     hazards: [{ type: 'snowball', f: 0.12 }, { type: 'snowball', f: 0.42 }, { type: 'snowball', f: 0.62 }] },
   { id: 'reef', name: 'Korallenriff', cup: 1, theme: 'reef',
-    shape: { type: 'radial', R0: 180, sx: 1.0, sz: 1.1, k: [[5, 0.1, 0.2], [2, 0.13, 1.5], [3, 0.05, 0]], h0: 6, hk: [[3, 4, 0]] },
+    shape: { type: 'radial', R0: 180, sx: 1.0, sz: 1.1, k: [[5, 0.1, 0.2], [2, 0.13, 1.5], [3, 0.05, 0]], h0: 12, hk: [[3, 7, 0], [1, 5, 1]] },
     narrow: [[0.36, 0.46, 6]],
     ramps: [0.3], gaps: [0.66], pads: [[0.12, 0.45], [0.12, -0.45], [0.5, 0], [0.86, 0]], items: [0.2, 0.42, 0.58, 0.78],
     hazards: [{ type: 'crab', f: 0.18 }, { type: 'crab', f: 0.48 }, { type: 'crab', f: 0.74 }, { type: 'crab', f: 0.9 }] },
   { id: 'clouds', name: 'Wolkenschloss', cup: 1, theme: 'clouds',
-    shape: { type: 'lemniscate', a: 250, b: 330, h0: 16, h1: 11, h3: 2 },
+    shape: { type: 'lemniscate', a: 250, b: 330, h0: 16, h1: 11, h3: 2, start: 0.75 },
     narrow: [[0.14, 0.3, 5.5], [0.66, 0.82, 5.5]],
     gaps: [0.6], pads: [[0.08, 0], [0.45, 0.45], [0.45, -0.45], [0.92, 0]], items: [0.1, 0.36, 0.55, 0.88],
     hazards: [{ type: 'bumper', f: 0.4, lat: -0.4 }, { type: 'bumper', f: 0.4, lat: 0.4 }, { type: 'bumper', f: 0.95, lat: 0 }] },
   { id: 'volcano', name: 'Dschungel-Vulkan', cup: 1, theme: 'volcano',
-    shape: { type: 'radial', R0: 200, sx: 1.1, sz: 1.0, k: [[3, 0.16, 0.0], [4, 0.09, 0.7], [7, 0.03, 0]], h0: 9, hk: [[1, 8, 0], [3, 3, 0.5]] },
+    shape: { type: 'spiral2', R0: 122, A: 44, sx: 1.1, h0: 16, h1: 13 },
     narrow: [[0.6, 0.7, 6]],
     ramps: [0.18, 0.84], gaps: [0.5], pads: [[0.35, 0.45], [0.35, -0.45], [0.73, 0]], items: [0.08, 0.28, 0.45, 0.62, 0.92],
     hazards: [{ type: 'vent', f: 0.3, lat: -0.45 }, { type: 'vent', f: 0.3, lat: 0.45 }, { type: 'vent', f: 0.4, lat: 0 },
@@ -154,6 +154,28 @@ export function sampleCenterline(shape) {
       z = shape.sz * r * Math.sin(t);
       y = shape.h0;
       for (const [k, h, p] of shape.hk) y += h * Math.cos(k * t + p);
+    } else if (shape.type === 'trefoil') {
+      // Kleeblatt-Knoten: 3 Kreuzungen, abwechselnd oben/unten
+      x = shape.s * (Math.sin(t) + 2 * Math.sin(2 * t));
+      z = shape.s * (Math.cos(t) - 2 * Math.cos(2 * t)) * (shape.sz || 1);
+      y = shape.h0 + shape.h1 * Math.sin(3 * t + (shape.ph || 0));
+    } else if (shape.type === 'limacon') {
+      // Schleife mit innerer Kurve, die unter sich durchführt
+      const r = shape.s * (shape.b + shape.a * Math.cos(t));
+      x = r * Math.cos(t + (shape.rot || 0));
+      z = r * Math.sin(t + (shape.rot || 0)) * (shape.sz || 1);
+      y = shape.h0 + shape.h1 * Math.sin(t) + (shape.h2 || 0) * Math.cos(2 * t);
+    } else if (shape.type === 'spiral2') {
+      // Doppelspirale: zwei Runden, die sich zweimal überkreuzen
+      const R = shape.R0 + shape.A * Math.cos(t);
+      x = (shape.sx || 1) * R * Math.cos(2 * t);
+      z = R * Math.sin(2 * t);
+      y = shape.h0 + shape.h1 * Math.sin(t);
+    } else if (shape.type === 'eight') {
+      // Acht mit einstellbaren Schlaufen
+      x = shape.a * Math.sin(t);
+      z = (shape.b / 2) * Math.sin(2 * t) + (shape.c || 0) * Math.sin(t);
+      y = shape.h0 + shape.h1 * Math.cos(t) + (shape.h3 || 0) * Math.cos(3 * t);
     } else {
       // Lemniskate (Acht) – Start auf der oberen Brücke
       x = shape.a * Math.sin(t);
@@ -179,5 +201,8 @@ export function sampleCenterline(shape) {
     const a = raw[j], b = raw[(j + 1) % M];
     out.push([a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u]);
   }
-  return { points: out, length: L };
+  // Startpunkt verschieben (z. B. weg von einer Kreuzung)
+  const s0 = Math.round((shape.start || 0) * n);
+  const rot = s0 ? out.slice(s0).concat(out.slice(0, s0)) : out;
+  return { points: rot, length: L };
 }
