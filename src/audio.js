@@ -1,51 +1,72 @@
 // Sound: alles live mit WebAudio erzeugt (keine Audiodateien nötig)
+// ------------------------------------------------------------------ Musik
+// Eigene Kompositionen: schnelle, fröhliche Kart-Musik.
+// chords: 16 Takte (A-Teil + B-Teil), a/b: Melodie je Takt 8 Achtel. Noten wie C5, F#4, Bb5; "-" halten, "." Pause.
 const SONGS = [
-  { bpm: 132, root: 60, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 5, 3, 4], lead: 'square' },   // Wiese
-  { bpm: 120, root: 62, scale: [0, 2, 4, 7, 9], prog: [0, 3, 5, 4], lead: 'triangle' },        // Bambus (pentatonisch)
-  { bpm: 112, root: 57, scale: [0, 2, 3, 5, 7, 8, 10], prog: [0, 5, 6, 4], lead: 'triangle' }, // Höhle
-  { bpm: 138, root: 65, scale: [0, 2, 4, 5, 7, 9, 10], prog: [0, 6, 3, 4], lead: 'square' },   // Honig
-  { bpm: 126, root: 64, scale: [0, 2, 4, 6, 7, 9, 11], prog: [0, 4, 5, 3], lead: 'sine' },     // Gletscher
-  { bpm: 104, root: 58, scale: [0, 2, 4, 7, 9], prog: [0, 5, 3, 4], lead: 'sine' },            // Riff
-  { bpm: 128, root: 67, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 3, 4, 0], lead: 'triangle' }, // Wolken
-  { bpm: 146, root: 55, scale: [0, 2, 3, 5, 7, 8, 10], prog: [0, 6, 5, 4], lead: 'sawtooth' }, // Vulkan
-  { bpm: 116, root: 60, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 4, 5, 3], lead: 'triangle' }, // Menü
+  { name: 'Wiese', bpm: 160, tr: 0, swing: 0.08, lead: 'brass',
+    chords: 'C Am F G C Am Dm7 G7 F G Em Am F G C C',
+    a: 'E5 - G5 - C6 - B5 A5 | G5 - E5 - . C5 E5 G5 | A5 - - G5 F5 - A5 - | G5 - - - . D5 E5 F5 | E5 - G5 - C6 - D6 E6 | D6 C6 - A5 - . G5 A5 | F5 - E5 D5 C5 - D5 - | B4 - - - . G4 A4 B4',
+    b: 'C5 - A4 C5 F5 - A5 - | G5 F5 E5 D5 B4 - G4 - | E5 - G5 - B5 - G5 - | A5 - - - E5 - C5 - | A5 - C6 - A5 G5 F5 - | G5 - B5 - D6 - B5 - | C6 - G5 - E5 - G5 - | C6 - - - . . . .' },
+  { name: 'Bambus', bpm: 150, tr: 2, swing: 0.12, lead: 'marimba',
+    chords: 'C F C G Am F G C F G Em Am F G Am G',
+    a: 'C5 D5 E5 G5 - E5 D5 C5 | A4 - C5 - D5 - C5 - | E5 G5 A5 G5 - E5 G5 - | D5 - - - . E5 D5 C5 | A4 C5 E5 - A5 - G5 E5 | D5 C5 A4 C5 - D5 E5 - | G5 - E5 D5 - E5 G5 A5 | C6 - - - . . . .',
+    b: 'A5 - G5 - C5 - A4 - | D5 - G5 - D5 E5 G5 - | E5 - G5 - B5 - G5 E5 | A5 - - - E5 - C5 - | C6 - A5 - G5 - A5 C6 | D6 - B5 G5 - D5 G5 - | E5 - C5 - A4 - C5 E5 | D5 - - - . D5 E5 G5' },
+  { name: 'Hoehle', bpm: 146, tr: 0, swing: 0.15, lead: 'synth',
+    chords: 'Am Am F E Am Dm E Am Dm Am E Am F G E E',
+    a: 'A4 - C5 E5 - A5 G5 E5 | D5 - C5 - B4 - C5 - | A4 - C5 - F5 - E5 D5 | E5 - - - G#4 - B4 - | C5 - E5 - A5 - C6 - | D6 - C6 A5 - F5 - D5 | E5 - G#5 - B5 - G#5 - | A5 - - - . E5 D5 C5',
+    b: 'D5 - F5 - A5 - F5 D5 | C5 - E5 - A5 - E5 C5 | B4 - D5 - E5 - G#5 - | A5 - - - C5 - E5 - | F5 - A5 - C6 - A5 F5 | G5 - B5 - D6 - B5 G5 | G#5 - B5 - E6 - D6 B5 | G#5 - - - . . . .' },
+  { name: 'Honig', bpm: 166, tr: 5, swing: 0.1, lead: 'brass',
+    chords: 'C C7 F Fm C A7 Dm7 G7 F G Em7 A7 Dm7 G7 C G7',
+    a: 'C5 . E5 . G5 . A5 G5 | Bb5 - A5 G5 E5 - C5 - | A5 . A5 . C6 . A5 F5 | Ab5 - G5 F5 C5 - . . | E5 . G5 . C6 . E6 D6 | C#6 - A5 - E5 - G5 - | F5 . E5 . D5 . C5 D5 | B4 - - - . G4 B4 D5',
+    b: 'F5 . A5 . C6 - A5 - | G5 . B5 . D6 - B5 - | E5 . G5 . B5 - D6 - | C#6 - A5 - E5 - G5 - | F5 - A5 - D6 - C6 A5 | G5 - F5 - D5 - B4 - | C5 . E5 . G5 . C6 . | D6 - - - . . . .' },
+  { name: 'Gletscher', bpm: 156, tr: 4, swing: 0.05, lead: 'bell',
+    chords: 'C D Em Am F G C G Am Em F C Dm G C C',
+    a: 'G5 - E5 - G5 - C6 - | A5 - F#5 - D5 - F#5 A5 | B5 - G5 - E5 - G5 B5 | C6 - - - A5 - E5 - | F5 - A5 - C6 - A5 - | B5 - D6 - B5 - G5 - | E6 - D6 C6 - G5 - E5 | D5 - - - . . . .',
+    b: 'E5 - A5 - C6 - B5 A5 | G5 - E5 - B4 - E5 - | F5 - A5 - C6 - D6 C6 | G5 - - - E5 - G5 - | F5 - D5 - A5 - F5 - | G5 - B5 - D6 - F6 - | E6 - - - C6 - G5 - | C6 - - - . . . .' },
+  { name: 'Riff', bpm: 142, tr: -2, swing: 0.18, lead: 'marimba',
+    chords: 'C F G C Am F G G F C G Am F C G C',
+    a: 'E5 - - C5 - E5 G5 - | A5 - - F5 - A5 C6 - | B5 - A5 G5 - D5 - - | E5 - - - . . G5 G5 | A5 - C6 - B5 A5 - E5 | F5 - - A5 - C6 - A5 | G5 - - B5 - D6 - B5 | G5 - - - . D5 E5 F5',
+    b: 'A5 - - C6 - A5 - F5 | G5 - - E5 - C5 - E5 | D5 - - G5 - B5 - D6 | C6 - B5 A5 - E5 - - | F5 - A5 - C6 - A5 - | G5 - E5 - C5 - E5 G5 | B5 - D6 - B5 - G5 - | C6 - - - . . . .' },
+  { name: 'Wolken', bpm: 150, tr: 7, swing: 0.0, lead: 'brass',
+    chords: 'C G Am Em F C Dm G F G C Am F G C C',
+    a: 'C5 . C5 . E5 . G5 . | B4 - D5 - G5 - D5 - | C5 . C5 . E5 . A5 . | G5 - E5 - B4 - E5 - | A5 . A5 . F5 . C6 . | G5 - E5 - C5 - E5 - | F5 - A5 - D6 - C6 A5 | B5 - - - D5 - G5 -',
+    b: 'A5 - C6 - F6 - C6 - | B5 - D6 - G6 - D6 - | C6 - G5 - E5 - G5 - | A5 - E5 - C5 - E5 - | F5 . A5 . C6 . F6 . | D6 . B5 . G5 . B5 . | C6 - - - G5 - E5 - | C6 - - - . . . .' },
+  { name: 'Vulkan', bpm: 172, tr: 0, swing: 0.0, lead: 'synth',
+    chords: 'Am G F E Am G F E F G Am Am F G E E',
+    a: 'A4 A4 . A4 C5 . E5 . | D5 - B4 - G4 - B4 D5 | C5 C5 . C5 F5 . A5 . | G#5 - E5 - B4 - E5 - | A5 . G5 . E5 . C5 E5 | D5 . B4 . G4 . B4 D5 | F5 . E5 . C5 . A4 C5 | B4 - - - E5 - - -',
+    b: 'C6 - A5 - F5 - A5 C6 | D6 - B5 - G5 - B5 D6 | E6 - - C6 - A5 - - | A5 . B5 . C6 . E6 . | F6 - E6 D6 C6 - A5 - | D6 - C6 B5 G5 - D5 - | E5 - G#5 - B5 - E6 - | D6 - B5 - G#5 - E5 -' },
+  { name: 'Menue', bpm: 140, tr: 0, swing: 0.16, lead: 'bell',
+    chords: 'C Am Dm G C Am Dm G7 F Fm C A7 Dm7 G7 C C',
+    a: 'G5 - E5 - C5 - E5 G5 | A5 - - - E5 - C5 - | D5 - F5 - A5 - F5 D5 | G5 - - - . G5 A5 B5 | C6 - B5 - A5 - G5 - | A5 - G5 - E5 - C5 - | D5 - F5 - A5 - C6 - | B5 - - - . . . .',
+    b: 'A5 - C6 - F6 - C6 - | Ab5 - C6 - F6 - C6 - | G5 - E5 - C5 - E5 - | C#6 - A5 - E5 - G5 - | F5 - A5 - D6 - C6 - | B5 - G5 - F5 - D5 - | C6 - - - G5 - E5 - | C6 - - - . . . .' },
 ];
 
-// Komponierte Melodien: 8 Takte à 8 Achtel. Zahl = Tonleiterstufe (0 = Grundton), "-" = halten, "." = Pause
-const MELODIES = [
-  // Kleeblatt-Wiese – fröhlich
-  '4 - 4 5 4 - 2 - | 5 - 7 - 5 4 2 - | 3 - 3 4 5 - 3 - | 4 - - - . 1 2 3 | 4 - 4 5 4 - 7 - | 9 - 7 - 5 4 5 - | 3 4 5 - 6 - 4 - | 7 - - - . . . .',
-  // Bambuswald – pentatonisch, verspielt
-  '2 - 3 4 3 - 2 0 | 1 - 2 - 0 - . . | 2 - 3 4 5 - 4 3 | 4 - - - 3 - 2 - | 5 - 4 3 4 - 3 2 | 3 - 2 1 2 - 0 - | 1 2 3 - 2 - 1 - | 0 - - - . . . .',
-  // Pilzhöhlen – geheimnisvoll
-  '0 - . 2 4 - . 3 | 2 - - - 1 - . . | 0 - . 2 4 - 5 - | 4 - - - . . . . | 7 - . 6 5 - 4 - | 5 - 3 - 4 - 2 - | 1 - 2 - 3 - 1 - | 0 - - - - - . .',
-  // Honigfabrik – hüpfend
-  '0 2 4 . 4 . 5 4 | 3 . 3 . 2 - . . | 0 2 4 . 4 . 7 6 | 5 - - - 4 - . . | 7 . 7 . 6 5 4 . | 5 . 5 . 4 3 2 . | 3 4 5 . 4 2 1 . | 0 - - - . . . .',
-  // Gletscher – verträumt
-  '4 - 3 - 4 - 6 - | 7 - - - 6 - 4 - | 3 - 2 - 3 - 4 - | 2 - - - . . . . | 4 - 3 - 4 - 7 - | 9 - - - 8 - 7 - | 6 - 4 - 3 - 2 - | 0 - - - - - . .',
-  // Korallenriff – gemütlich
-  '0 . 2 . 3 - 2 . | 1 . 0 . 1 - . . | 2 . 3 . 4 - 3 . | 2 - - - . . . . | 4 . 5 . 4 - 3 . | 2 . 3 . 2 - 1 . | 0 . 1 . 2 - 1 . | 0 - - - . . . .',
-  // Wolkenschloss – festlich
-  '7 - 6 - 7 - 4 - | 5 - - - 4 - . . | 3 - 4 - 5 - 7 - | 6 - - - . . . . | 7 - 9 - 8 - 7 - | 6 - 7 - 5 - 4 - | 3 - 4 - 2 - 1 - | 0 - - - . . . .',
-  // Dschungel-Vulkan – treibend
-  '0 0 . 0 2 . 3 . | 4 . 3 . 2 . 0 . | 0 0 . 0 2 . 3 . | 5 . 4 . 3 - . . | 7 . 6 . 5 . 4 . | 5 . 4 . 3 . 2 . | 3 . 2 . 1 . -1 . | 0 - - - . . . .',
-  // Menü – warm
-  '0 - 2 - 4 - 7 - | 5 - - - 4 - . . | 3 - 5 - 4 - 2 - | 1 - - - . . . . | 0 - 2 - 4 - 7 - | 9 - - - 7 - . . | 8 - 7 - 5 - 6 - | 7 - - - . . . .',
-];
-
-// Text -> Liste aus {step, deg, len}
-function parseMelody(s) {
+const PC = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+function noteMidi(n) {
+  const m = /^([A-G])(#|b)?(-?\d)$/.exec(n);
+  if (!m) return null;
+  return 12 * (+m[3] + 1) + PC[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0);
+}
+function chordNotes(s) {
+  const m = /^([A-G])(#|b)?(m)?(maj7|7)?$/.exec(s);
+  const root = PC[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0);
+  const iv = [0, m[3] ? 3 : 4, 7];
+  if (m[4] === '7') iv.push(10);
+  if (m[4] === 'maj7') iv.push(11);
+  return { root, iv };
+}
+// Melodie-Text -> Noten je Achtel
+function parseLine(s) {
   const tok = s.replace(/\|/g, ' ').split(/\s+/).filter(Boolean);
   const out = [];
   tok.forEach((t, i) => {
     if (t === '-') { if (out.length && out.at(-1).open) out.at(-1).len++; return; }
     if (out.length) out.at(-1).open = false;
     if (t === '.') return;
-    out.push({ step: i, deg: +t, len: 1, open: true });
+    out.push({ step: i, midi: noteMidi(t), len: 1, open: true });
   });
-  return { notes: out, steps: tok.length };
+  return out;
 }
-
 // Stimmlage pro Tier: Tonhöhe, Formant-Verschiebung, Vibrato, Tempo
 const VOICES = {
   sloth: { pitch: 210, formant: 0.85, vib: 0.02, vibRate: 5, len: 1.6 },
@@ -248,6 +269,33 @@ export class Audio {
   }
 
   // ---------------------------------------------------------- Motor
+  // Motor-Klang: aufgenommene „Zündungen“ (synthetisch), Tempo = Drehzahl
+  engineBuffer() {
+    if (this.engBuf) return this.engBuf;
+    const sr = this.ctx.sampleRate, cyc = 1 / 30, cycles = 8;
+    const per = Math.floor(sr * cyc);
+    const buf = this.ctx.createBuffer(1, per * cycles, sr);
+    const d = buf.getChannelData(0);
+    let seed = 7;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    for (let c = 0; c < cycles; c++) {
+      const amp = 0.7 + 0.3 * rnd();
+      const f0 = 88 + rnd() * 14;
+      for (let n = 0; n < per; n++) {
+        const t = n / sr;
+        const env = Math.exp(-t * 48);
+        const body = Math.sin(2 * Math.PI * f0 * t) * env + 0.45 * Math.sin(2 * Math.PI * f0 * 2.02 * t) * env * env;
+        const click = (rnd() * 2 - 1) * Math.exp(-t * 350) * 0.6;
+        const rumble = (rnd() * 2 - 1) * 0.06 * env;
+        d[c * per + n] = amp * (body * 0.85 + click + rumble);
+      }
+    }
+    let m = 0;
+    for (let i = 0; i < d.length; i++) m = Math.max(m, Math.abs(d[i]));
+    for (let i = 0; i < d.length; i++) d[i] /= m;
+    return (this.engBuf = buf);
+  }
+
   setEngines(n) {
     if (!this.ctx) return;
     this.stopEngines();
@@ -264,102 +312,166 @@ export class Audio {
       return { s, f, g };
     };
     for (let i = 0; i < n; i++) {
-      const o = this.ctx.createOscillator();
-      const o2 = this.ctx.createOscillator();
+      const src = this.ctx.createBufferSource();
+      src.buffer = this.engineBuffer();
+      src.loop = true;
       const f = this.ctx.createBiquadFilter();
-      const g = this.ctx.createGain();
-      const am = this.ctx.createGain();
-      o.type = 'sawtooth';
-      o2.type = 'square';
       f.type = 'lowpass';
-      f.frequency.value = 600;
+      f.frequency.value = 900;
+      f.Q.value = 1.5;
+      const g = this.ctx.createGain();
       g.gain.value = 0;
-      am.gain.value = 1;
-      // „Tuckern“: Lautstärke schwankt im Takt des Motors
-      const lfo = this.ctx.createOscillator();
-      const lfoG = this.ctx.createGain();
-      lfo.frequency.value = 14;
-      lfoG.gain.value = 0.35;
-      lfo.connect(lfoG).connect(am.gain);
-      o.connect(f);
-      o2.connect(f);
-      f.connect(am).connect(g).connect(this.sfxBus);
-      o.start(); o2.start(); lfo.start();
+      // leiser Oberton für etwas „Surren“
+      const hum = this.ctx.createOscillator();
+      hum.type = 'triangle';
+      const humG = this.ctx.createGain();
+      humG.gain.value = 0;
+      hum.connect(humG).connect(f);
+      src.connect(f).connect(g).connect(this.sfxBus);
+      src.start(0, Math.random() * 0.2);
+      hum.start();
       const screech = loopNoise('bandpass', 2600, 4);
       const rumble = loopNoise('lowpass', 260, 1);
-      this.engines.push({ o, o2, f, g, lfo, screech, rumble });
+      this.engines.push({ src, f, g, hum, humG, screech, rumble, gear: 0, rpm: 1 });
     }
   }
+
   updateEngine(i, speed, boosting, drifting = false, offroad = false) {
     const e = this.engines[i];
     if (!e) return;
     const t = this.ctx.currentTime;
-    const s = Math.abs(speed);
-    const f = 55 + s * 3.2 + (boosting ? 40 : 0);
+    const s = Math.max(0, speed);
+    // Gänge: Drehzahl steigt im Gang und fällt beim Hochschalten
+    const G = [0, 9, 17, 25, 33, 99];
+    let gear = 0;
+    while (gear < G.length - 2 && s > G[gear + 1]) gear++;
+    const frac = Math.min(1, (s - G[gear]) / (G[gear + 1] - G[gear]));
+    let rpm = (gear === 0 ? 1.0 : 1.55) + frac * 2.0 + (boosting ? 0.5 : 0);
+    if (speed < -0.5) rpm = 1.4 + Math.min(1, -speed / 10);
     const share = 1 / Math.max(1, this.engines.length * 0.7);
-    e.o.frequency.setTargetAtTime(f, t, 0.05);
-    e.o2.frequency.setTargetAtTime(f * 0.5, t, 0.05);
-    e.lfo.frequency.setTargetAtTime(10 + s * 0.9, t, 0.1);
-    e.f.frequency.setTargetAtTime(400 + s * 30 + (boosting ? 800 : 0), t, 0.05);
-    e.g.gain.setTargetAtTime((0.025 + Math.min(1, s / 35) * 0.03) * share, t, 0.08);
+    if (gear !== e.gear && gear > e.gear) {
+      e.g.gain.setValueAtTime(e.g.gain.value * 0.5, t); // kurzes Schalten
+    }
+    e.gear = gear;
+    e.src.playbackRate.setTargetAtTime(rpm, t, 0.06);
+    e.hum.frequency.setTargetAtTime(30 * rpm * 4, t, 0.06);
+    e.humG.gain.setTargetAtTime(0.05 + frac * 0.05, t, 0.1);
+    e.f.frequency.setTargetAtTime(500 + rpm * 520 + (boosting ? 900 : 0), t, 0.06);
+    e.g.gain.setTargetAtTime((0.07 + Math.min(1, s / 35) * 0.06) * share, t, 0.07);
     e.screech.f.frequency.setTargetAtTime(2200 + s * 25, t, 0.1);
     e.screech.g.gain.setTargetAtTime(drifting && s > 8 ? 0.05 * share : 0, t, 0.06);
     e.rumble.g.gain.setTargetAtTime(offroad && s > 4 ? Math.min(0.25, s / 120) * share : 0, t, 0.08);
-  }  stopEngines() {
+  }
+
+  stopEngines() {
     for (const e of this.engines) {
       e.g.gain.value = 0;
-      e.o.stop();
-      e.o2.stop();
-      e.lfo.stop();
+      e.src.stop();
+      e.hum.stop();
       e.screech.s.stop();
       e.rumble.s.stop();
     }
     this.engines = [];
   }
-
   // ---------------------------------------------------------- Musik
+  // Instrumente für die Melodie
+  inst(kind, f, dur, t, vol) {
+    const ctx = this.ctx, at = ctx.currentTime + t, bus = this.musicBus;
+    const opt = { bus, delay: t };
+    if (kind === 'brass') {
+      const g = ctx.createGain(), fl = ctx.createBiquadFilter();
+      fl.type = 'lowpass'; fl.Q.value = 2;
+      fl.frequency.setValueAtTime(500, at);
+      fl.frequency.linearRampToValueAtTime(3400, at + 0.035);
+      fl.frequency.exponentialRampToValueAtTime(1400, at + 0.25);
+      g.gain.setValueAtTime(0.0001, at);
+      g.gain.linearRampToValueAtTime(vol, at + 0.02);
+      g.gain.setValueAtTime(vol * 0.8, at + dur * 0.85);
+      g.gain.exponentialRampToValueAtTime(0.0001, at + dur + 0.08);
+      for (const det of [-7, 8]) {
+        const o = ctx.createOscillator();
+        o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = det;
+        o.connect(fl); o.start(at); o.stop(at + dur + 0.12);
+      }
+      fl.connect(g).connect(bus);
+    } else if (kind === 'marimba') {
+      this.tone(f, 0.4, { ...opt, type: 'sine', vol: vol * 1.3 });
+      this.tone(f * 4, 0.07, { ...opt, type: 'sine', vol: vol * 0.5 });
+    } else if (kind === 'bell') {
+      this.tone(f, dur + 0.35, { ...opt, type: 'triangle', vol: vol * 1.2 });
+      this.tone(f * 2, 0.3, { ...opt, type: 'sine', vol: vol * 0.6 });
+    } else {
+      this.tone(f, dur, { ...opt, type: 'square', vol: vol * 0.55 });
+      this.tone(f * 1.006, dur, { ...opt, type: 'sawtooth', vol: vol * 0.4 });
+    }
+  }
+
+  drum(kind, t) {
+    const bus = this.musicBus;
+    if (kind === 'kick') {
+      const at = this.ctx.currentTime + t;
+      const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.frequency.setValueAtTime(155, at);
+      o.frequency.exponentialRampToValueAtTime(42, at + 0.12);
+      g.gain.setValueAtTime(0.9, at);
+      g.gain.exponentialRampToValueAtTime(0.001, at + 0.2);
+      o.connect(g).connect(bus);
+      o.start(at); o.stop(at + 0.22);
+    } else if (kind === 'snare') {
+      this.noise(0.15, { bus, delay: t, vol: 0.38, freq: 1900, q: 0.8 });
+      this.tone(190, 0.08, { bus, delay: t, type: 'triangle', vol: 0.22 });
+    } else if (kind === 'hat') this.noise(0.03, { bus, delay: t, vol: 0.08, freq: 9000, type: 'highpass' });
+    else if (kind === 'open') this.noise(0.2, { bus, delay: t, vol: 0.07, freq: 7000, type: 'highpass' });
+    else if (kind === 'crash') this.noise(1.1, { bus, delay: t, vol: 0.13, freq: 5500, type: 'highpass' });
+  }
+
   playSong(i) {
     this.pendingSong = i;
     if (!this.ctx) return;
     this.stopSong();
     const song = SONGS[i % SONGS.length];
-    const mel = parseMelody(MELODIES[i % MELODIES.length]);
-    const at = new Map(mel.notes.map((m) => [m.step, m]));
+    const tr = song.tr;
+    const chords = song.chords.split(/\s+/).map(chordNotes);
+    const map = (line) => new Map(parseLine(line).map((x) => [x.step, x]));
+    const A = map(song.a), B = map(song.b);
     this.tempo = 1;
-    let next = this.ctx.currentTime + 0.1;
+    let next = this.ctx.currentTime + 0.12;
     let n = 0;
-    const note = (deg, oct = 0) => {
-      const L = song.scale.length;
-      const o = Math.floor(deg / L);
-      return song.root + song.scale[((deg % L) + L) % L] + 12 * (o + oct);
-    };
-    const lead = { type: song.lead, vol: song.lead === 'sawtooth' ? 0.05 : song.lead === 'sine' ? 0.11 : 0.08 };
     const tick = () => {
       const step = 60 / (song.bpm * this.tempo) / 2; // Achtel
-      while (next < this.ctx.currentTime + 0.25) {
-        const pos = n % mel.steps, st = pos % 8, bar = Math.floor(pos / 8);
-        const pass = Math.floor(n / mel.steps);
-        const chord = song.prog[bar % 4];
-        const opt = { bus: this.musicBus, delay: next - this.ctx.currentTime };
-        // Bass: im zweiten Durchgang mit Quinte
-        if (st % 2 === 0) this.tone(midi(note(chord + (pass % 2 && st % 4 === 2 ? 4 : 0), -2)), step * 1.8, { ...opt, type: 'triangle', vol: 0.32 });
+      while (next < this.ctx.currentTime + 0.3) {
+        const pos = n % 128, st = pos % 8, bar = Math.floor(pos / 8);
+        const pass = Math.floor(n / 128);
+        const ch = chords[bar];
+        const sw = st % 2 ? song.swing * step : 0;
+        const t = next - this.ctx.currentTime + sw;
+        const opt = { bus: this.musicBus, delay: t };
+        const rootLow = 36 + ((ch.root + tr + 12) % 12);
+        // Bass: hüpfend Grundton / Oktave, am Taktende Quinte
+        const bn = st === 6 ? rootLow + 7 : st % 2 ? rootLow + 12 : rootLow;
+        this.tone(midi(bn), step * 0.85, { ...opt, type: 'triangle', vol: 0.34 });
+        this.tone(midi(bn), step * 0.5, { ...opt, type: 'square', vol: 0.045 });
+        // Nachschlag-Akkorde
+        if (st % 2) for (const iv of ch.iv) this.tone(midi(60 + ((ch.root + tr + iv) % 12)), step * 0.45, { ...opt, type: 'square', vol: 0.022 });
+        if (st === 0) for (const iv of ch.iv) this.tone(midi(48 + ((ch.root + tr + iv) % 12) + 12), step * 7, { ...opt, type: 'sine', vol: 0.03, attack: 0.05 });
         // Schlagzeug
-        if (st === 0 || st === 4 || (this.tempo > 1 && st === 6)) this.noise(0.12, { ...opt, vol: 0.35, freq: 120, type: 'lowpass' });
-        if (st === 2 || st === 6) this.noise(0.08, { ...opt, vol: 0.12, freq: 2500, q: 0.6 });
-        this.noise(0.03, { ...opt, vol: this.tempo > 1 ? 0.07 : 0.04, freq: 8000, type: 'highpass' });
-        // Flächenklang
-        if (st % 4 === 0) for (const d of [0, 2, 4]) this.tone(midi(note(chord + d, 0)), step * 3.5, { ...opt, type: 'sine', vol: 0.05, attack: 0.03 });
-        // Melodie (+ Zweitstimme und Arpeggio ab dem zweiten Durchgang)
-        const m = at.get(pos);
-        if (m) {
-          this.tone(midi(note(m.deg, 1)), step * m.len * 0.92, { ...opt, ...lead });
-          if (pass % 2) this.tone(midi(note(m.deg - 2, 1)), step * m.len * 0.9, { ...opt, type: 'triangle', vol: 0.035 });
+        const fill = bar % 8 === 7 && st >= 4;
+        if (st === 0 && bar % 8 === 0) this.drum('crash', t);
+        if (st === 0 || st === 4 || (st === 3 && bar % 2)) this.drum('kick', t);
+        if (st === 2 || st === 6 || fill) this.drum('snare', t);
+        this.drum(st === 7 && bar % 2 ? 'open' : 'hat', t);
+        // Melodie (+ zweiter Durchgang mit Oktav-Doppelung und Arpeggio)
+        const m = (bar < 8 ? A : B).get((bar % 8) * 8 + st);
+        if (m && m.midi) {
+          this.inst(song.lead, midi(m.midi + tr), step * m.len * 0.92, t, 0.075);
+          if (pass % 2) this.tone(midi(m.midi + tr - 12), step * m.len * 0.9, { ...opt, type: 'triangle', vol: 0.045 });
         }
-        if (pass % 2) this.tone(midi(note(chord + [0, 2, 4, 7][st % 4], 1)), step * 0.8, { ...opt, type: 'square', vol: 0.018 });
+        if (pass % 2 && bar >= 8) this.tone(midi(72 + ((ch.root + tr + ch.iv[st % ch.iv.length]) % 12)), step * 0.6, { ...opt, type: 'sine', vol: 0.025 });
         next += step;
         n++;
       }
-    };    this.songTimer = setInterval(tick, 50);
+    };
+    this.songTimer = setInterval(tick, 40);
     tick();
   }
   // schneller in der letzten Runde
