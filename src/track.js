@@ -1,7 +1,7 @@
 // Strecke: Geometrie, Abfragen (wo ist ein Kart?), Landschaft
 import * as THREE from 'three';
 import { sampleCenterline, ROAD_HALF, OFFROAD, SPACING } from './data.js';
-import { instanceProps, propClone } from './assets.js';
+import { instanceProps, propClone, landmarkClone } from './assets.js';
 
 export const FENCE = ROAD_HALF + OFFROAD;
 const RAMP_LEN = 6;      // Stützpunkte (x SPACING = 12 Einheiten)
@@ -499,6 +499,23 @@ export class Track {
       for (const l of chunks.values()) group.add(instanceProps(name, l, { shadows: settings.shadows && !['Flower', 'Cloud'].includes(name) }));
     }
 
+
+    // Wahrzeichen (in Blender modelliert)
+    const LM = { meadow: 'Windmill', bamboo: 'Gate_Pagoda', cave: 'Gate_Shroom', honey: 'Factory', glacier: 'Gate_Ice',
+      reef: 'Gate_Coral', clouds: 'Gate_Castle', volcano: 'Gate_Tiki' };
+    this.spinners = [];
+    const lmName = LM[this.def.theme];
+    for (const f of [0.25, 0.7]) {
+      const lm = landmarkClone(lmName);
+      if (!lm) break;
+      const i = Math.round(f * this.N) % this.N;
+      const p = this.P[i], R = this.R[i];
+      const side = lmName === 'Windmill' ? FENCE + 9 : 0;
+      lm.position.set(p.x + R.x * side, p.y, p.z + R.z * side);
+      lm.rotation.y = this.headingAt(i);
+      group.add(lm);
+      lm.traverse((o) => { if (o.name.startsWith('Spin')) this.spinners.push({ o, axis: lmName === 'Windmill' ? 'z' : 'x' }); });
+    }
     if (th.volcano) {
       const v = new THREE.Mesh(new THREE.CylinderGeometry(22, 95, 110, 24, 1, true), new THREE.MeshStandardMaterial({ color: '#4A3438', roughness: 1, flatShading: true }));
       v.position.set(0, this.groundY + 55, 0);

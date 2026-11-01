@@ -377,8 +377,12 @@ export class Kart {
     const blinking = this.blink < 0.12;
     if (this.blink < 0) this.blink = 2 + Math.random() * 4;
     const closed = blinking || this.stun > 0 || this.drowsy > 0 || this.cheer;
-    if (m.eyesOpen) m.eyesOpen.visible = !closed;
-    if (m.eyesClosed) m.eyesClosed.visible = closed;
+    const dizzy = this.stun > 0;
+    if (m.eyesOpen) m.eyesOpen.visible = !closed && !dizzy;
+    if (m.eyesClosed) m.eyesClosed.visible = closed && !dizzy;
+    if (m.eyesDizzy) m.eyesDizzy.visible = dizzy;
+    if (m.mouthOpen) m.mouthOpen.visible = dizzy || this.boostTime > 0;
+    if (m.mouthHappy) m.mouthHappy.visible = !(dizzy || this.boostTime > 0);
     const armUp = this.cheer ? -2.4 + Math.sin(this.t * 10) * 0.3 : 0;
     if (m.armL) m.armL.rotation.x += (armUp - m.armL.rotation.x) * Math.min(1, dt * 8);
     if (m.armR) m.armR.rotation.x += ((this.cheer ? -2.4 - Math.sin(this.t * 10) * 0.3 : 0) - m.armR.rotation.x) * Math.min(1, dt * 8);

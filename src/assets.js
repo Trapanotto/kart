@@ -117,7 +117,9 @@ export function createKartModel(id, { fur = true, ghost = false } = {}) {
     });
   }
   const get = (n) => nodes[n] || null;
+  for (const n of ['Eyes_Dizzy', 'Mouth_Open']) if (nodes[n]) nodes[n].visible = false;
   return {
+    eyesDizzy: get('Eyes_Dizzy'), mouthHappy: get('Mouth_Happy'), mouthOpen: get('Mouth_Open'),
     root, shells,
     steerFL: get('Steer_FL'), steerFR: get('Steer_FR'),
     wheels: ['Wheel_FL', 'Wheel_FR', 'Wheel_BL', 'Wheel_BR'].map(get).filter(Boolean),
@@ -133,6 +135,8 @@ function prepareProps(scene) {
   scene.updateMatrixWorld(true);
   for (const r of scene.children) {
     if (!r.name.startsWith('Prop_')) continue;
+    (Assets.propRoots ||= {})[r.name.slice(5)] = r;
+    r.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     const inv = new THREE.Matrix4().copy(r.matrixWorld).invert();
     const parts = [];
     r.traverse((o) => {
@@ -160,6 +164,16 @@ export function instanceProps(name, matrices, { shadows = true } = {}) {
     group.add(im);
   }
   return group;
+}
+
+// Wahrzeichen mit Hierarchie (für drehende Teile namens "Spin")
+export function landmarkClone(name) {
+  const src = Assets.propRoots?.[name];
+  if (!src) return null;
+  const g = src.clone(true);
+  g.position.set(0, 0, 0);
+  g.traverse((o) => { if (o.isMesh) o.userData.shared = true; });
+  return g;
 }
 
 export function propClone(name) {

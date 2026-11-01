@@ -244,6 +244,9 @@ def face_rot(n, roll=0.0):
 
 
 # ---------------------------------------------------------------- Gesicht
+CUR = {}  # aktuelle Ausdrucks-Gruppen des Fahrers (Schwindel-Augen, Mund)
+
+
 def eye(name, p, n, size, parent, sclera=False, roll=0.0):
     rot = face_rot(n, roll)
     q = rot.to_quaternion()
@@ -258,6 +261,27 @@ def eye(name, p, n, size, parent, sclera=False, roll=0.0):
         (0.028 * size,) * 3, M('#FFFFFF', 0.1, emit=0.3), parent, seg=12, rings=8)
     ell(name + 'H2', p + n * 0.03 * size - up * 0.035 * size + rt * 0.03 * size,
         (0.014 * size,) * 3, M('#FFFFFF', 0.1, emit=0.3), parent, seg=10, rings=6)
+    ED = CUR.get('ED')
+    if ED is not None and parent is CUR.get('EO'):
+        # Schwindel-Auge: weisse Flaeche mit Spirale
+        ell('DizzyW', p, (0.088 * size, 0.035 * size, 0.105 * size), M('#FFFFFF', 0.3), ED, rot)
+        pts = []
+        for i in range(30):
+            a = i / 29 * math.tau * 1.8
+            rr = 0.008 * size + 0.07 * size * i / 29
+            pts.append(p + n * 0.034 * size + (rt * math.cos(a) + up * math.sin(a)) * rr)
+        tube('Spiral', pts, 0.011 * size, M(EYE, 0.3), ED)
+
+
+def open_mouth(sc, d, center=(0, 0, 0), size=1.0):
+    MO = CUR.get('MO')
+    if MO is None:
+        return
+    p, n = surf(d, sc, center, -0.004)
+    rot = face_rot(n)
+    up = rot.to_quaternion() @ Vector((0, 0, 1))
+    ell('MouthO', p, (0.055 * size, 0.03, 0.05 * size), M('#4A1F2A', 0.5), MO, rot)
+    ell('Tongue', p + n * 0.012 - up * 0.022 * size, (0.032 * size, 0.02, 0.02 * size), M('#FF7B93', 0.5), MO, rot)
 
 
 def arc(name, sc, d0, w, h, parent, mat, center=(0, 0, 0), up=True, off=0.012, r=0.014, n=9):
@@ -268,11 +292,17 @@ def arc(name, sc, d0, w, h, parent, mat, center=(0, 0, 0), up=True, off=0.012, r
         dz = h * (1 - u * u) if up else h * u * u
         p, _ = surf(Vector(d0) + Vector((u * w, 0, dz)), sc, center, off)
         pts.append(p)
+    if name == 'Mouth' and CUR.get('MH') is not None:
+        parent = CUR['MH']
+        open_mouth(sc, Vector(d0) + Vector((0, 0, -0.02)), center, 0.8 + w * 2)
     return tube(name, pts, r, mat, parent)
 
 
 def cat_mouth(sc, d0, w, h, parent, mat, center=(0, 0, 0), off=0.012, r=0.013):
     """'w'-foermiger Tiermund aus zwei kleinen Boegen."""
+    if CUR.get('MH') is not None:
+        parent = CUR['MH']
+        open_mouth(sc, (d0[0], d0[1], d0[2] - h * 0.9), center, 0.8 + w * 2)
     for s in (-1, 1):
         pts = []
         for i in range(7):
@@ -414,6 +444,8 @@ def base_driver(K, body_col, body_sc=(0.4, 0.36, 0.42), belly=None, arm_col=None
         arms.append((A, v, s))
     EO = empty('Eyes_Open', (0, 0, 0), H)
     EC = empty('Eyes_Closed', (0, 0, 0), H)
+    CUR.clear()
+    CUR.update(EO=EO, ED=empty('Eyes_Dizzy', (0, 0, 0), H), MH=empty('Mouth_Happy', (0, 0, 0), H), MO=empty('Mouth_Open', (0, 0, 0), H))
     return D, H, EO, EC, arms
 
 
@@ -911,7 +943,168 @@ def build_props():
     cyl('Flagpole', (0, 0, 6.4), (0, 0, 1), 0.03, 0.9, M('#D8DDE4', 0.2, 1.0), r, 8)
     rbox('Flag', (0.25, 0, 6.6), (0.45, 0.03, 0.3), M('#FF8FA3', 0.6), r, 0.02)
     x += 5
-    # Item-Box (Geschenk mit Pfote)
+    # ============ Wahrzeichen (überspannen die Strecke, Innenbreite +-16) ============
+    LOWPOLY[0] = False
+    # Windmühle (Wiese, neben der Strecke)
+    r = root('Windmill', x)
+    cone_dir('Tower', (0, 0, 0), (0, 0, 1), 3.2, 2.0, 11, M('#FFF6EC', 0.7), r, 20)
+    cone_dir('Roof', (0, 0, 11), (0, 0, 1), 2.6, 0.0, 3.5, M('#E8434F', 0.5), r, 20)
+    rbox('Door', (0, -2.75, 1.3), (1.4, 0.4, 2.6), M('#8A5A3A', 0.7), r, 0.3)
+    for z in (5, 8):
+        rbox('Window', (0, -2.45 + (z - 5) * 0.12, z), (0.9, 0.3, 1.1), M('#7EC8F2', 0.2), r, 0.2)
+    S = empty('Spin', (0, -2.6, 10), r)
+    cyl('Hub', (0, 0, 0), (0, 1, 0), 0.5, 0.8, M('#8A5A3A', 0.6), S, 16)
+    for k in range(4):
+        a = k * math.pi / 2
+        d = Vector((math.cos(a), 0, math.sin(a)))
+        rbox('Blade', d * 3.6, (0.25, 0.15, 6.6), M('#F2E7C9', 0.6), S, 0.06, rot=(0, -a + math.pi / 2, 0))
+        rbox('Sail', d * 3.9 + Vector((0, -0.05, 0)), (1.3, 0.08, 5.2), M('#FFFFFF', 0.8), S, 0.05, rot=(0, -a + math.pi / 2, 0))
+    for k in range(5):
+        a = k / 5 * math.tau
+        ell('Bush', (math.cos(a) * 3.6, math.sin(a) * 3.6, 0.5), (1.1, 1.1, 0.8), M('#5DBB46', 0.7), r)
+    x += 12
+    # Pagoden-Tor (Bambus)
+    r = root('Gate_Pagoda', x)
+    red, gold, roof = M('#D9452F', 0.45), M('#F2C14E', 0.3, 0.6), M('#2F6B4F', 0.5)
+    for s in (-1, 1):
+        cyl('Pillar', (s * 16.5, 0, 5), (0, 0, 1), 0.9, 10, red, r, 20)
+        cyl('Base', (s * 16.5, 0, 0.4), (0, 0, 1), 1.3, 0.8, M('#6B6B6B', 0.8), r, 20)
+        ell('Lantern', (s * 12, 0, 7.4), (0.8, 0.8, 1.0), M('#FF6A3D', 0.4, emit=1.2), r)
+        cyl('LanternCap', (s * 12, 0, 8.4), (0, 0, 1), 0.5, 0.25, gold, r, 12)
+    rbox('Beam1', (0, 0, 8.6), (36, 1.4, 1.0), red, r, 0.2)
+    rbox('Beam2', (0, 0, 10.4), (39, 2.0, 0.9), red, r, 0.2)
+    rbox('Roof', (0, 0, 11.4), (42, 4.5, 1.2), roof, r, 0.5)
+    for s in (-1, 1):
+        cone_dir('Tip', (s * 20.5, 0, 11.6), (s, 0, 0.8), 0.9, 0.05, 3.2, roof, r, 12)
+    rbox('Plaque', (0, -0.8, 9.5), (6, 0.3, 1.6), gold, r, 0.2)
+    x += 45
+    # Pilz-Bogen (Höhle)
+    r = root('Gate_Shroom', x)
+    for s in (-1, 1):
+        pts = [(s * 17, 0, 0), (s * 17.5, 0, 4), (s * 16, 0, 8), (s * 12, 0, 11)]
+        tube('Stem', pts, 1.4, M('#F6EBDD', 0.6), r)
+        ell('Cap', (s * 11, 0, 12), (7.5, 7.5, 3.5), M('#7C5CFF', 0.4, emit=0.5), r)
+        for k in range(8):
+            a = k / 8 * math.tau
+            ell('Dot', (s * 11 + math.cos(a) * 4.5, math.sin(a) * 4.5, 14.3), (0.9, 0.9, 0.4), M('#B6F3FF', 0.4, emit=3.0), r, seg=12, rings=8)
+    x += 45
+    # Fabrikhalle (Honig) – ein Tunnel
+    r = root('Factory', x)
+    wall, trim = M('#E8B04A', 0.6), M('#8A5A2B', 0.6)
+    for s in (-1, 1):
+        rbox('Wall', (s * 16.8, 0, 5), (1.2, 30, 10), wall, r, 0.3)
+        for k in range(4):
+            rbox('Win', (s * 16.1, -10.5 + k * 7, 6), (0.3, 3.5, 3), M('#FFF1B0', 0.2, emit=0.8), r, 0.2)
+        G = empty('Spin', (s * 17.6, 0, 6), r)
+        cyl('Gear', (0, 0, 0), (1, 0, 0), 3.2, 0.6, M('#B5BCC7', 0.3, 0.8), G, 12, smooth=False)
+        cyl('GearHub', (s * 0.2, 0, 0), (1, 0, 0), 1.0, 0.8, trim, G, 16)
+        for k in range(12):
+            a = k / 12 * math.tau
+            rbox('Tooth', (0, math.cos(a) * 3.4, math.sin(a) * 3.4), (0.6, 0.9, 0.9), M('#B5BCC7', 0.3, 0.8), G, 0.1, rot=(a, 0, 0))
+    for k in range(6):
+        rbox('Rib', (0, -12.5 + k * 5, 10.4), (35, 1.0, 1.0), trim, r, 0.2)
+    rbox('Roof', (0, 0, 11.2), (36, 30, 0.6), M('#C98B4E', 0.6), r, 0.2)
+    cyl('Pipe', (6, 0, 12.5), (0, 1, 0), 1.0, 32, M('#F2A93B', 0.15), r, 16)
+    cyl('Chimney', (-8, 6, 14), (0, 0, 1), 1.4, 6, trim, r, 16)
+    ell('Hive', (0, -15.3, 13), (3.5, 1.5, 2.5), M('#FFC233', 0.4), r)
+    x += 45
+    # Eisbogen (Gletscher)
+    r = root('Gate_Ice', x)
+    rnd = random.Random(21)
+    for k in range(17):
+        a = math.pi * k / 16
+        p = Vector((math.cos(a) * 17, 0, math.sin(a) * 13))
+        d = Vector((math.cos(a), rnd.uniform(-0.3, 0.3), math.sin(a) + 0.4)).normalized()
+        cone_dir('Shard', p - d * 1.5, d, rnd.uniform(1.2, 1.9), 0.0, rnd.uniform(4, 6.5), M('#A6E6FF', 0.08, emit=0.25), r, 6, False)
+    x += 45
+    # Korallenbogen (Riff)
+    r = root('Gate_Coral', x)
+    cols = ['#FF7A8A', '#FFB347', '#B59CFF', '#FF8FD0']
+    for k in range(13):
+        a = math.pi * k / 12
+        p = Vector((math.cos(a) * 17, 0, math.sin(a) * 12))
+        ell('Coral', p, (2.2, 2.0, 2.2), M(cols[k % 4], 0.6), r, rot=(k, k * 0.5, 0), seg=16, rings=10)
+        for j in range(3):
+            limb('Branch', p, p + Vector((rnd.uniform(-2, 2), rnd.uniform(-1.5, 1.5), rnd.uniform(1, 3))), 0.4, M(cols[(k + j) % 4], 0.6), r, seg=10)
+    for s in (-1, 1):
+        ell('Shell', (s * 18, -1.5, 1.2), (1.6, 0.6, 1.4), M('#FFE2F1', 0.4), r, rot=(0.3, 0, s * 0.3))
+    x += 45
+    # Schlosstor (Wolken)
+    r = root('Gate_Castle', x)
+    stone, pink = M('#F8EDF6', 0.6), M('#B59CFF', 0.45)
+    for s in (-1, 1):
+        cyl('Tower', (s * 18.5, 0, 8), (0, 0, 1), 3.0, 16, stone, r, 24)
+        cone_dir('Roof', (s * 18.5, 0, 16), (0, 0, 1), 3.6, 0.0, 5.5, pink, r, 24)
+        cyl('Pole', (s * 18.5, 0, 22.3), (0, 0, 1), 0.08, 1.8, M('#D8DDE4', 0.2, 1.0), r, 8)
+        rbox('Flag', (s * 18.5 + 0.8, 0, 22.8), (1.4, 0.05, 0.9), M('#FF8FA3', 0.6), r, 0.05)
+        for z in (6, 11):
+            rbox('Win', (s * 18.5, -2.95, z), (1.0, 0.3, 1.6), M('#FFD447', 0.3, emit=0.8), r, 0.3)
+    rbox('Bridge', (0, 0, 12.5), (34, 3.5, 3.0), stone, r, 0.3)
+    for k in range(9):
+        rbox('Merlon', (-14 + k * 3.5, 0, 14.6), (1.6, 3.5, 1.2), stone, r, 0.15)
+    ell('Heart', (0, -1.9, 12.6), (1.4, 0.4, 1.2), M('#FF8FA3', 0.4, emit=0.4), r)
+    x += 45
+    # Tiki-Tor (Vulkan)
+    r = root('Gate_Tiki', x)
+    wood, dark = M('#8A5A3A', 0.8), M('#3A2416', 0.7)
+    for s in (-1, 1):
+        for k, h in enumerate((0, 3.2, 6.4)):
+            rbox('Totem', (s * 17, 0, h + 1.6), (2.6, 2.6, 3.1), wood, r, 0.3)
+            for e in (-1, 1):
+                ell('Eye', (s * 17 + e * 0.6, -1.32, h + 2.2), (0.42, 0.12, 0.42), M('#FFFFFF', 0.5), r)
+                ell('Pupil', (s * 17 + e * 0.6, -1.4, h + 2.2), (0.2, 0.08, 0.2), dark, r)
+            rbox('Mouth', (s * 17, -1.32, h + 0.9), (1.4, 0.15, 0.5), dark, r, 0.1)
+        cone_dir('Feather', (s * 17, 0, 9.6), (0, 0, 1), 1.0, 0.0, 2.5, M('#FF6A1A', 0.5), r, 8)
+    pts = [(-17, 0, 9), (-8, 0, 7.5), (0, 0, 7.2), (8, 0, 7.5), (17, 0, 9)]
+    tube('Rope', pts, 0.15, M('#C9A26B', 0.8), r)
+    for k in range(9):
+        xx = -14 + k * 3.5
+        zz = 7.2 + 0.006 * xx * xx
+        cone_dir('Pennant', (xx, 0, zz - 0.2), (0, 0, -1), 0.8, 0.0, 1.6, M(['#FFD447', '#FF6A1A', '#4CB050'][k % 3], 0.6), r, 3, False, scale=(1, 0.2, 1))
+    x += 45
+    # ============ Hindernisse ============
+    LOWPOLY[0] = True
+    r = root('Log', x)
+    cyl('Log', (0, 0, 1.0), (1, 0, 0), 1.0, 6.0, M('#8CC63F', 0.5), r, 16)
+    for k in range(5):
+        torus('Ring', (-2.4 + k * 1.2, 0, 1.0), (0, math.pi / 2, 0), 1.0, 0.1, M('#5E8A25', 0.5), r)
+    for s in (-1, 1):
+        cyl('End', (s * 3.0, 0, 1.0), (1, 0, 0), 0.85, 0.05, M('#E8D9A8', 0.6), r, 16)
+    x += 8
+    r = root('Snowball', x)
+    LOWPOLY[0] = False
+    ell('Ball', (0, 0, 1.8), (1.8, 1.8, 1.8), M('#FFFFFF', 0.6, sheen=0.4), r, seg=24, rings=14)
+    for d in fib(10):
+        p, n = surf(d, (1.8, 1.8, 1.8), (0, 0, 1.8))
+        ell('Lump', p, (0.6, 0.6, 0.6), M('#F2F8FF', 0.6), r, seg=12, rings=8)
+    LOWPOLY[0] = True
+    x += 6
+    r = root('Crab', x)
+    red = M('#E8434F', 0.4)
+    ell('Body', (0, 0, 0.8), (1.3, 1.0, 0.6), red, r)
+    for s in (-1, 1):
+        limb('Stalk', (s * 0.4, -0.6, 1.1), (s * 0.5, -0.8, 1.8), 0.08, red, r)
+        ell('EyeW', (s * 0.5, -0.8, 1.9), (0.22, 0.22, 0.22), M('#FFFFFF', 0.3), r)
+        ell('EyeP', (s * 0.5, -0.98, 1.92), (0.11, 0.08, 0.12), M(EYE, 0.1), r)
+        limb('Arm', (s * 1.1, -0.4, 0.8), (s * 1.8, -1.0, 1.1), 0.18, red, r)
+        ell('Claw', (s * 2.0, -1.3, 1.2), (0.45, 0.55, 0.35), red, r)
+        for k in range(3):
+            limb('Leg', (s * 1.0, 0.1 + k * 0.3, 0.6), (s * 1.8, 0.2 + k * 0.4, 0.0), 0.08, red, r)
+    ell('Smile', (0, -0.95, 0.75), (0.3, 0.05, 0.06), M('#7A1F2A', 0.5), r)
+    x += 6
+    r = root('Barrel', x)
+    cyl('Barrel', (0, 0, 1.3), (0, 0, 1), 1.1, 2.6, M('#B5793F', 0.7), r, 16)
+    for z in (0.4, 2.2):
+        torus('Band', (0, 0, z), (0, 0, 0), 1.12, 0.07, M('#6B6B6B', 0.4, 0.8), r)
+    ell('Honey', (0, 0, 2.62), (0.95, 0.95, 0.25), M('#F2A93B', 0.1), r)
+    ell('Drip', (0.8, -0.6, 2.2), (0.2, 0.2, 0.45), M('#F2A93B', 0.1), r)
+    x += 5
+    r = root('Vent', x)
+    for k in range(7):
+        a = k / 7 * math.tau
+        ico('Rock', (math.cos(a) * 1.7, math.sin(a) * 1.7, 0.35), (0.8, 0.8, 0.6), M('#3A3238', 0.9), r, 1, 0.2, k)
+    ell('Glow', (0, 0, 0.1), (1.5, 1.5, 0.2), M('#FF6A1A', 0.5, emit=5.0), r)
+    x += 5    # Item-Box (Geschenk mit Pfote)
     r = root('ItemBox', x)
     rbox('Box', (0, 0, 0), (1.0, 1.0, 1.0), M('#FFFFFF', 0.25, emit=0.2), r, 0.18)
     return R
@@ -1008,6 +1201,17 @@ def shot(path, loc, target, lens):
     bpy.ops.render.render(write_still=True)
 
 
+def set_expr(mode):
+    """Nur für Vorschaubilder: welche Ausdrucks-Gruppen sichtbar sind."""
+    show = {'normal': ('Eyes_Open', 'Mouth_Happy'), 'dizzy': ('Eyes_Dizzy', 'Mouth_Open')}[mode]
+    for g in ('Eyes_Open', 'Eyes_Closed', 'Eyes_Dizzy', 'Mouth_Happy', 'Mouth_Open'):
+        o = bpy.data.objects.get(g)
+        if o is None:
+            continue
+        for ch in o.children_recursive:
+            ch.hide_render = g not in show
+
+
 def main():
     todo = ONLY or list(ANIMALS.keys()) + ['props']
     for aid in todo:
@@ -1020,8 +1224,9 @@ def main():
             if DO_RENDER:
                 setup_render(1024, False)
                 bpy.context.scene.render.resolution_x = 2048
-                shot(os.path.join(OUT, '..', 'docs', 'props.png'), (38, -40, 18), (38, 0, 2), 50)
+                shot(os.path.join(OUT, '..', 'docs', 'props.png'), (150, -230, 70), (150, 0, 5), 50)
             continue
+        LOWPOLY[0] = False
         K = empty('Kart_' + aid)
         build_kart(K, THEMES[aid])
         kart_extras(K, aid, THEMES[aid])
@@ -1030,6 +1235,7 @@ def main():
         print('[%s] tris: %d' % (aid, stats()))
         export(os.path.join(OUT, 'models', aid + '.glb'))
         if DO_RENDER:
+            set_expr('normal')
             setup_render(256)
             bpy.context.scene.render.image_settings.file_format = 'WEBP'
             bpy.context.scene.render.image_settings.quality = 88
@@ -1037,6 +1243,9 @@ def main():
             bpy.context.scene.render.image_settings.file_format = 'PNG'
             setup_render(900, False)
             shot(os.path.join(OUT, '..', 'docs', 'preview_' + aid + '.png'), (3.4, -4.4, 2.6), (0, 0.1, 0.85), 50)
+            set_expr('dizzy')
+            setup_render(400)
+            shot(os.path.join(OUT, '..', 'docs', 'dizzy_' + aid + '.png'), (0.8, -2.6, 1.9), (0, 0.15, 1.45), 75)
 
 
 main()
