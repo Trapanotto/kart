@@ -1,7 +1,6 @@
 // Item-Boxen, Item-Würfeln und alle Item-Effekte
 import * as THREE from 'three';
-import { ITEMS, itemWeights, ROAD_HALF } from './data.js';
-import { FENCE } from './track.js';
+import { ITEMS, itemWeights } from './data.js';
 
 const _v = new THREE.Vector3();
 
@@ -95,7 +94,7 @@ export class ItemManager {
     for (const f of tr.def.items || []) {
       const i = Math.round(f * tr.N);
       for (let k = -2; k <= 2; k++) {
-        const pos = tr.pointAt(i, k * 3.4);
+        const pos = tr.pointAt(i, k * Math.min(3.4, (tr.hw[i] - 1.2) / 2));
         pos.y += 1.4 + tr.bump[i];
         const mesh = new THREE.Mesh(geo, this.boxMat);
         const paw = new THREE.Sprite(this.pawMat);
@@ -131,14 +130,14 @@ export class ItemManager {
     const mat = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false });
     for (const [f, lat] of tr.def.pads || []) {
       const i = Math.round(f * tr.N);
-      const pos = tr.pointAt(i, lat * ROAD_HALF);
+      const pos = tr.pointAt(i, lat * tr.hw[i]);
       const m = new THREE.Mesh(new THREE.PlaneGeometry(4.5, 8), mat);
       m.rotation.order = 'YXZ';
       m.rotation.y = tr.headingAt(i);
       m.rotation.x = -Math.PI / 2;
       m.position.set(pos.x, pos.y + 0.07 + tr.bump[i], pos.z);
       this.group.add(m);
-      this.pads.push({ i, lat: lat * ROAD_HALF });
+      this.pads.push({ i, lat: lat * tr.hw[i] });
     }
   }
 
@@ -146,7 +145,7 @@ export class ItemManager {
     const tr = this.race.track;
     for (const [f, lat] of tr.def.puddles || []) {
       const i = Math.round(f * tr.N);
-      const pos = tr.pointAt(i, lat * ROAD_HALF);
+      const pos = tr.pointAt(i, lat * tr.hw[i]);
       pos.y += 0.06;
       const mesh = makePuddle();
       mesh.scale.setScalar(1.4);
@@ -341,8 +340,9 @@ export class ItemManager {
     e.pos.addScaledVector(e.vel, dt);
     const loc = tr.locate(e.pos, e.idx, _locTmp);
     e.idx = loc.i;
+    if (loc.gap) return false;
     e.pos.y = loc.y + 0.7;
-    const lim = FENCE - 0.5;
+    const lim = tr.fence[loc.i] - 0.5;
     if (Math.abs(loc.lat) > lim) {
       const R = tr.R[loc.i];
       const s = Math.sign(loc.lat);
@@ -356,7 +356,7 @@ export class ItemManager {
     e.mesh.position.copy(e.pos);
     e.mesh.rotation.x += dt * 15;
     const k = this.hitTest(e, 1.7);
-    if (k) { k.hit(); return false; }
+    if (k) { if (k.hit() && e.owner) this.race.audio.voice(e.owner, 'hehe'); return false; }
     if (this.projectileClash(e)) return false;
   }
 
@@ -400,7 +400,7 @@ export class ItemManager {
     e.mesh.rotation.x += dt * 12;
     if (Math.random() < 0.4) this.race.fx.soft.emit(e.pos, _v.set(0, 0.5, 0), '#FFB3CF', 0.3, 0.6);
     const k = this.hitTest(e, 1.8);
-    if (k) { k.hit(); return false; }
+    if (k) { if (k.hit() && e.owner) this.race.audio.voice(e.owner, 'hehe'); return false; }
     if (this.projectileClash(e)) return false;
   }
 

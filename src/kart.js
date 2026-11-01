@@ -1,7 +1,5 @@
 // Kart: Arcade-Fahrphysik, Drift, Boost, Treffer, Animation des Fahrers
 import * as THREE from 'three';
-import { ROAD_HALF } from './data.js';
-import { FENCE } from './track.js';
 import { createKartModel } from './assets.js';
 
 const DRIFT_LEVELS = [0.9, 1.8, 2.8];
@@ -93,6 +91,7 @@ export class Kart {
     this.boostKind = kind;
     this.speed = Math.max(this.speed, this.st.maxSpeed * 0.9);
     if (this.human !== null) this.race.audio.boost();
+    if (kind >= 2 && Math.random() < 0.5) this.race.audio.voice(this, 'wii');
   }
 
   hit(strength = 1) {
@@ -140,7 +139,7 @@ export class Kart {
     tr.locate(this.pos, this.trackIdx, this.loc);
     const loc = this.loc;
     this.trackIdx = loc.i;
-    const onRoad = Math.abs(loc.lat) <= ROAD_HALF + 0.6;
+    const onRoad = Math.abs(loc.lat) <= tr.hw[loc.i] + 0.6;
     const grip = this.char.iceGrip ? 1 : tr.grip[loc.i];
 
     // Höchstgeschwindigkeit
@@ -225,7 +224,10 @@ export class Kart {
     this.trackIdx = loc.i;
     const gravity = this.race.theme.underwater ? 15 : 26;
     if (this.grounded) {
-      if (tr.launch[loc.i] && Math.abs(loc.lat) < ROAD_HALF && this.speed > 10 && this.launchedAt !== loc.i) {
+      if (loc.gap) {
+        this.grounded = false;
+        this.vy = Math.min(this.vy, 0);
+      } else if (tr.launch[loc.i] && Math.abs(loc.lat) < tr.hw[loc.i] && this.speed > 10 && this.launchedAt !== loc.i) {
         this.launchedAt = loc.i;
         this.vy = 5.5 + this.speed * 0.14;
         this.grounded = false;
@@ -253,9 +255,11 @@ export class Kart {
       }
     }
     if (this.launchedAt !== undefined && Math.abs(loc.i - this.launchedAt) > 4) this.launchedAt = undefined;
+    // In eine Lücke gefallen?
+    if ((loc.gap && this.pos.y < loc.roadY - 5) || this.pos.y < tr.groundY - 4) { this.race.respawn(this); return; }
 
     // Bande
-    const lim = FENCE - 0.9;
+    const lim = tr.fence[loc.i] - 0.9;
     if (Math.abs(loc.lat) > lim) {
       const R = tr.R[loc.i];
       const s = Math.sign(loc.lat);

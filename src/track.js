@@ -6,6 +6,7 @@ import { instanceProps, propClone, landmarkClone } from './assets.js';
 export const FENCE = ROAD_HALF + OFFROAD;
 const RAMP_LEN = 6;      // Stützpunkte (x SPACING = 12 Einheiten)
 const RAMP_H = 1.7;
+const GAP_LEN = 7;       // Stützpunkte ohne Fahrbahn (x SPACING = 14 Einheiten)
 
 function rng(seed) {
   let s = seed >>> 0;
@@ -59,9 +60,26 @@ export class Track {
     });
     this.grip = new Float32Array(N).fill(1);
     for (const [a, b] of def.ice || []) for (let i = Math.floor(a * N); i < b * N; i++) this.grip[i % N] = 0.32;
+    // Fahrbahnbreite je Stützpunkt (Engstellen weich ein- und ausblenden)
+    this.hw = new Float32Array(N).fill(ROAD_HALF);
+    for (const [a, b, w] of def.narrow || []) {
+      const ia = Math.round(a * N), len = (Math.round(b * N) - ia + N) % N;
+      for (let k = 0; k <= len; k++) {
+        const e = Math.min(1, k / 12, (len - k) / 12);
+        const i = (ia + k) % N;
+        this.hw[i] = Math.min(this.hw[i], ROAD_HALF + (w - ROAD_HALF) * e);
+      }
+    }
+    this.fence = this.hw.map((h) => h + OFFROAD);
+    // Lücken: nach einer Rampe fehlt die Fahrbahn
+    this.gap = new Uint8Array(N);
+    for (const f of def.gaps || []) {
+      const c = Math.round(f * N);
+      for (let k = 2; k <= GAP_LEN + 1; k++) this.gap[(c + k) % N] = 1;
+    }
     this.bump = new Float32Array(N);
     this.launch = new Uint8Array(N);
-    for (const f of def.ramps || []) {
+    for (const f of [...(def.ramps || []), ...(def.gaps || [])]) {
       const c = Math.round(f * N);
       for (let k = 0; k < RAMP_LEN; k++) this.bump[(c - RAMP_LEN + 1 + k + N) % N] = RAMP_H * ((k + 1) / RAMP_LEN);
       this.launch[c % N] = 1;
@@ -132,8 +150,10 @@ export class Track {
     const R = this.R[i];
     const lat = (p.x - cx) * R.x + (p.z - cz) * R.z;
     let y = cy;
-    if (Math.abs(lat) < ROAD_HALF) y += this.bump[i] + (this.bump[j] - this.bump[i]) * u;
-    out.i = i; out.u = u; out.idx = i + u; out.lat = lat; out.y = y;
+    if (Math.abs(lat) < this.hw[i]) y += this.bump[i] + (this.bump[j] - this.bump[i]) * u;
+    out.gap = this.gap[i] === 1;
+    if (out.gap) y = -1e4;
+    out.i = i; out.u = u; out.idx = i + u; out.lat = lat; out.y = y; out.roadY = cy;
     out.cx = cx; out.cz = cz;
     return out;
   }
@@ -175,18 +195,20 @@ export class Track {
     groundTex.repeat.set(70, 70);
 
     // Fahrbahn + Wiese + Bordsteine
-    const ribbon = (inner, outer, yOff, colorFn, uvScale, withBump) => {
+    // inner/outer: Abstand zur Mittellinie, als Funktion des Stützpunkts
+    const ribbon = (innerF, outerF, yOff, colorFn, uvScale, withBump) => {
       const pos = [], uv = [], col = [], idx = [];
       for (let i = 0; i <= N; i++) {
         const k = i % N, p = this.P[k], R = this.R[k];
         const b = withBump ? this.bump[k] : 0;
+        const inner = innerF(k), outer = outerF(k);
         for (const s of [inner, outer]) {
           pos.push(p.x + R.x * s, p.y + yOff + b, p.z + R.z * s);
           uv.push((s - inner) / (outer - inner), (i * SPACING) / uvScale);
           const c = colorFn(k, s);
           col.push(c.r, c.g, c.b);
         }
-        if (i < N) {
+        if (i < N && !this.gap[k] && !this.gap[(k + 1) % N]) {
           const a = i * 2;
           idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
         }
@@ -201,14 +223,14 @@ export class Track {
     };
     const white = C('#ffffff'), ice = C(th.ice || '#BFE9FF');
     const road = new THREE.Mesh(
-      ribbon(-ROAD_HALF, ROAD_HALF, 0.02, (k) => (this.grip[k] < 1 ? ice : white), 18, true),
+      ribbon((k) => -this.hw[k], (k) => this.hw[k], 0.02, (k) => (this.grip[k] < 1 ? ice : white), 18, true),
       new THREE.MeshStandardMaterial({ map: roadTex, vertexColors: true, roughness: 0.85 }));
     road.material.side = THREE.DoubleSide;
     road.receiveShadow = true;
     group.add(road);
     const offMat = new THREE.MeshStandardMaterial({ map: offTex, roughness: 1 });
     for (const s of [-1, 1]) {
-      const g = ribbon(s * (ROAD_HALF + 0.6), s * FENCE, 0.0, () => white, 10, false);
+      const g = ribbon((k) => s * (this.hw[k] + 0.6), (k) => s * this.fence[k], 0.0, () => white, 10, false);
       const m = new THREE.Mesh(g, offMat);
       m.material.side = THREE.DoubleSide;
       m.receiveShadow = true;
@@ -216,7 +238,7 @@ export class Track {
       // Bordstein
       const c1 = C(th.curb[0]), c2 = C(th.curb[1]);
       const curb = new THREE.Mesh(
-        ribbon(s * (ROAD_HALF - 0.3), s * (ROAD_HALF + 0.8), 0.09, (k) => (Math.floor(k / 2) % 2 ? c1 : c2), 10, false),
+        ribbon((k) => s * (this.hw[k] - 0.3), (k) => s * (this.hw[k] + 0.8), 0.09, (k) => (Math.floor(k / 2) % 2 ? c1 : c2), 10, false),
         new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, side: THREE.DoubleSide }));
       curb.receiveShadow = true;
       group.add(curb);
@@ -232,11 +254,11 @@ export class Track {
         const k = i % N, p = this.P[k], R = this.R[k];
         const c = Math.floor(k / 3) % 2 ? f1 : f2;
         for (const [o, h] of prof) {
-          const d = s * (FENCE + 0.35 + o);
+          const d = s * (this.fence[k] + 0.35 + o);
           fencePos.push(p.x + R.x * d, p.y + h, p.z + R.z * d);
           fenceCol.push(c.r, c.g, c.b);
         }
-        if (i < N) for (let q = 0; q < prof.length - 1; q++) {
+        if (i < N && !this.gap[k] && !this.gap[(k + 1) % N]) for (let q = 0; q < prof.length - 1; q++) {
           const a = base + i * prof.length + q, b = a + prof.length;
           fenceIdx.push(a, b, a + 1, a + 1, b, b + 1);
         }
@@ -258,9 +280,10 @@ export class Track {
 
     // Rampen-Vorderseite + Streifen
     const rampMat = new THREE.MeshStandardMaterial({ color: th.curb[1], roughness: 0.5 });
-    for (const f of this.def.ramps || []) {
+    for (const f of [...(this.def.ramps || []), ...(this.def.gaps || [])]) {
       const c = Math.round(f * N) % N;
       const p = this.P[c], R = this.R[c], T = this.T[c];
+      const ROAD_HALF = this.hw[c];
       const box = new THREE.Mesh(new THREE.BoxGeometry(ROAD_HALF * 2, RAMP_H, 0.4), rampMat);
       box.position.set(p.x + T.x * 0.1, p.y + RAMP_H / 2, p.z + T.z * 0.1);
       box.rotation.y = Math.atan2(T.x, T.z);
@@ -274,6 +297,31 @@ export class Track {
         s.rotation.y = Math.atan2(T.x, T.z);
         s.rotation.x = -Math.atan(RAMP_H / (RAMP_LEN * SPACING));
         group.add(s);
+      }
+    }
+
+    // Graben unter jeder Lücke (Wasser, Lava, Abgrund …)
+    const gapCol = { volcano: '#FF6A1A', cave: '#140C2E', clouds: '#FFFFFF', glacier: '#4FA3E0', reef: '#1B6E8C' }[this.def.theme] || '#3FA9D8';
+    const gapMat = new THREE.MeshStandardMaterial({ color: gapCol, roughness: 0.15, emissive: this.def.theme === 'volcano' ? '#FF4E1A' : '#000000',
+      emissiveIntensity: this.def.theme === 'volcano' ? 0.7 : 0 });
+    this.gapMeshes = [];
+    for (const f of this.def.gaps || []) {
+      const c = (Math.round(f * N) + 2 + Math.floor(GAP_LEN / 2)) % N;
+      const p = this.P[c];
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(this.fence[c] * 2 + 8, (GAP_LEN + 3) * SPACING), gapMat);
+      m.rotation.order = 'YXZ';
+      m.rotation.y = this.headingAt(c);
+      m.rotation.x = -Math.PI / 2;
+      m.position.set(p.x, Math.max(this.groundY + 0.08, p.y - 2.5), p.z);
+      m.receiveShadow = true;
+      group.add(m);
+      this.gapMeshes.push(m);
+      // Warnschilder
+      for (const s of [-1, 1]) {
+        const q = this.P[(c - GAP_LEN + N) % N], R = this.R[(c - GAP_LEN + N) % N];
+        const sign = new THREE.Mesh(new THREE.ConeGeometry(1.1, 1.8, 3), new THREE.MeshStandardMaterial({ color: '#FFD447', emissive: '#FFB000', emissiveIntensity: 0.4 }));
+        sign.position.set(q.x + R.x * s * (this.fence[c] + 1.5), q.y + 1.2, q.z + R.z * s * (this.fence[c] + 1.5));
+        group.add(sign);
       }
     }
 
@@ -292,10 +340,10 @@ export class Track {
       for (let i = 0; i <= N; i++) {
         const k = i % N, p = this.P[k], R = this.R[k];
         const h = p.y - this.groundY;
-        const d0 = s * FENCE, d1 = s * (FENCE + 0.5 + h * 1.1);
+        const d0 = s * this.fence[k], d1 = s * (this.fence[k] + 0.5 + h * 1.1);
         pos.push(p.x + R.x * d0, p.y, p.z + R.z * d0, p.x + R.x * d1, this.groundY, p.z + R.z * d1);
         col.push(g2.r, g2.g, g2.b, g1.r, g1.g, g1.b);
-        if (i < N) {
+        if (i < N && !this.gap[k] && !this.gap[(k + 1) % N]) {
           const a = base + i * 2;
           idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
         }
@@ -317,8 +365,9 @@ export class Track {
     const pos = [], idx = [];
     for (let i = 0; i <= N; i++) {
       const k = i % N, p = this.P[k], R = this.R[k];
-      for (const [s, dy] of [[-FENCE, 0], [-FENCE, -1.4], [FENCE, -1.4], [FENCE, 0]]) pos.push(p.x + R.x * s, p.y + dy - 0.02, p.z + R.z * s);
-      if (i < N) for (let q = 0; q < 3; q++) {
+      const F = this.fence[k];
+      for (const [s, dy] of [[-F, 0], [-F, -1.4], [F, -1.4], [F, 0]]) pos.push(p.x + R.x * s, p.y + dy - 0.02, p.z + R.z * s);
+      if (i < N && !this.gap[k] && !this.gap[(k + 1) % N]) for (let q = 0; q < 3; q++) {
         const a = i * 4 + q, b = a + 4;
         idx.push(a, b, a + 1, a + 1, b, b + 1);
       }

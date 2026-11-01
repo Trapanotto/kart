@@ -5,6 +5,7 @@ import { Track } from './track.js';
 import { Kart } from './kart.js';
 import { AIDriver } from './ai.js';
 import { ItemManager } from './items.js';
+import { Hazards } from './hazards.js';
 import { Particles, Ambient, Skids } from './effects.js';
 import { Hud } from './hud.js';
 import { createKartModel, FUR } from './assets.js';
@@ -87,6 +88,7 @@ export class Race {
     this.ranked.forEach((k, i) => (k.rank = i + 1));
 
     this.items = new ItemManager(this);
+    this.hazards = new Hazards(this);
     if (this.mode === 'tt') for (const k of this.humans) { k.item = 'carrot3'; k.itemCount = 3; }
 
     // Kameras
@@ -145,6 +147,7 @@ export class Race {
 
   update(dt) {
     if (this.paused) return;
+    this.audio.curPan = 0;
     this.clock += dt;
     this.stateT += dt;
     const N = this.track.N;
@@ -202,6 +205,7 @@ export class Race {
     for (const k of this.karts) k.update(dt);
     this.collide();
     this.items.update(dt);
+    this.hazards.update(dt);
 
     // Runden + Platzierung
     for (const k of this.karts) {
@@ -257,7 +261,7 @@ export class Race {
     if (this.humans[0]) this.ambient.update(dt, this.humans[0].pos);
     this.updateCameras(dt);
     this.updateFur();
-    this.humans.forEach((k, i) => this.audio.updateEngine(i, k.speed, k.boostTime > 0));
+    this.humans.forEach((k, i) => this.audio.updateEngine(i, k.speed, k.boostTime > 0, k.drift.on && k.grounded, k.grounded && Math.abs(k.loc.lat) > this.track.hw[k.loc.i] + 0.6));
     this.hud.update(dt);
     // Schattenkamera folgt Spieler 1
     const focus = this.humans[0] ? this.humans[0].pos : this.track.P[0];
@@ -280,6 +284,28 @@ export class Race {
     r.rotation.y = a[4] + dy * u;
   }
 
+  // Abgestürzt: zurück auf die Strecke vor der Lücke
+  respawn(k) {
+    const N = this.track.N;
+    let idx = k.trackIdx;
+    for (let s = 0; s < 40 && (this.track.gap[idx] || this.track.launch[idx] || this.track.bump[idx] > 0); s++) idx = (idx - 1 + N) % N;
+    idx = (idx - 6 + N) % N;
+    k.place(idx, 0, this.track);
+    k.vel.set(0, 0, 0);
+    k.speed = 0;
+    k.vy = 0;
+    k.grounded = true;
+    k.drift.on = false;
+    k.boostTime = 0;
+    k.stun = 0.8;
+    k.squash = 0.25;
+    this.burst(k.pos, '#FFFFFF', 16);
+    if (k.human !== null) {
+      this.hud.message(k.human, 'Hoppla! 🪂');
+      this.audio.hit(k);
+    }
+  }
+
   finishKart(k) {
     k.finished = true;
     k.finishTime = this.time;
@@ -290,6 +316,7 @@ export class Race {
       k.ai = new AIDriver(k, 0.95);
       this.hud.message(k.human, place === 1 ? '🏆 Gewonnen!' : `Ziel! Platz ${place}`, 4);
       this.audio.finish(place <= 3);
+      this.audio.voice(k, place <= 3 ? 'yay' : 'oh');
       if (this.mode === 'tt') this.saveGhost(k);
     }
   }

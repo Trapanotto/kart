@@ -46,6 +46,18 @@ function parseMelody(s) {
   return { notes: out, steps: tok.length };
 }
 
+// Stimmlage pro Tier: Tonhöhe, Formant-Verschiebung, Vibrato, Tempo
+const VOICES = {
+  sloth: { pitch: 210, formant: 0.85, vib: 0.02, vibRate: 5, len: 1.6 },
+  sheep: { pitch: 430, formant: 1.05, vib: 0.09, vibRate: 17, len: 1.1 },
+  redpanda: { pitch: 560, formant: 1.15, vib: 0.02, vibRate: 6, len: 0.85 },
+  hedgehog: { pitch: 680, formant: 1.25, vib: 0.03, vibRate: 8, len: 0.8 },
+  penguin: { pitch: 500, formant: 1.1, vib: 0.04, vibRate: 9, len: 0.9 },
+  capybara: { pitch: 170, formant: 0.8, vib: 0.01, vibRate: 4, len: 1.4 },
+  otter: { pitch: 470, formant: 1.05, vib: 0.03, vibRate: 7, len: 0.95 },
+  axolotl: { pitch: 620, formant: 1.2, vib: 0.05, vibRate: 11, len: 0.9 },
+};
+
 const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
 
 export class Audio {
@@ -86,7 +98,16 @@ export class Audio {
   }
 
   // ---------------------------------------------------------- Bausteine
-  tone(freq, dur, { type = 'square', vol = 0.2, slide = 0, delay = 0, attack = 0.005, bus } = {}) {
+  out(bus, pan) {
+    bus = bus || this.sfxBus;
+    if (!pan || bus !== this.sfxBus) return bus;
+    const p = this.ctx.createStereoPanner();
+    p.pan.value = Math.max(-1, Math.min(1, pan));
+    p.connect(bus);
+    return p;
+  }
+
+  tone(freq, dur, { type = 'square', vol = 0.2, slide = 0, delay = 0, attack = 0.005, bus, pan } = {}) {
     if (!this.ctx) return;
     const t = this.ctx.currentTime + delay;
     const o = this.ctx.createOscillator();
@@ -97,12 +118,12 @@ export class Audio {
     g.gain.setValueAtTime(0.0001, t);
     g.gain.linearRampToValueAtTime(vol, t + attack);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g).connect(bus || this.sfxBus);
+    o.connect(g).connect(this.out(bus, pan ?? this.curPan));
     o.start(t);
     o.stop(t + dur + 0.05);
   }
 
-  noise(dur, { vol = 0.2, freq = 1200, q = 1, type = 'bandpass', slide = 1, delay = 0, bus } = {}) {
+  noise(dur, { vol = 0.2, freq = 1200, q = 1, type = 'bandpass', slide = 1, delay = 0, bus, pan } = {}) {
     if (!this.ctx) return;
     const t = this.ctx.currentTime + delay;
     const s = this.ctx.createBufferSource();
@@ -116,19 +137,78 @@ export class Audio {
     const g = this.ctx.createGain();
     g.gain.setValueAtTime(vol, t);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    s.connect(f).connect(g).connect(bus || this.sfxBus);
+    s.connect(f).connect(g).connect(this.out(bus, pan ?? this.curPan));
     s.start(t, Math.random());
     s.stop(t + dur + 0.05);
   }
 
+  // Lautstärke nach Entfernung + Links/Rechts aus Sicht von Spieler 1
   near(k) {
+    this.curPan = 0;
     if (!k || k.human !== null) return 1;
     if (!this.race) return 0;
     let best = Infinity;
     for (const h of this.race.humans) best = Math.min(best, h.pos.distanceTo(k.pos));
-    return best < 40 ? 1 - best / 40 : 0;
+    const cam = this.race.cams[0];
+    if (cam && this.race.humans.length === 1) {
+      const c = cam.cam;
+      const dx = k.pos.x - c.position.x, dz = k.pos.z - c.position.z;
+      const fx = Math.sin(cam.yaw), fz = Math.cos(cam.yaw);
+      const d = Math.hypot(dx, dz) || 1;
+      this.curPan = ((-fz * dx + fx * dz) / d) * 0.8; // rechts = positiv
+    }
+    return best < 45 ? 1 - best / 45 : 0;
   }
 
+  // ---------------------------------------------------------- Tierstimmen (Formant-Synthese)
+  voice(k, kind) {
+    if (!this.ctx || !k) return;
+    const v = this.near(k);
+    if (!v) return;
+    if ((k._voiceT || 0) > this.ctx.currentTime) return;
+    k._voiceT = this.ctx.currentTime + 0.7;
+    const V = VOICES[k.char.id] || VOICES.otter;
+    const shapes = {
+      hit:   [[1.25, 'o', 0], [0.8, 'u', 0.28]],
+      yay:   [[1.0, 'u', 0], [1.45, 'i', 0.14], [1.3, 'a', 0.3]],
+      hehe:  [[1.4, 'e', 0], [1.4, 'e', 0.12], [1.5, 'e', 0.24]],
+      wii:   [[1.0, 'i', 0], [1.7, 'i', 0.3]],
+      oh:    [[1.1, 'o', 0], [0.9, 'o', 0.35]],
+    }[kind];
+    if (!shapes) return;
+    const F = { a: [800, 1250], e: [500, 1900], i: [320, 2400], o: [480, 850], u: [350, 700] };
+    const t0 = this.ctx.currentTime + 0.01;
+    const end = t0 + shapes.at(-1)[2] + 0.22 * V.len;
+    const o = this.ctx.createOscillator();
+    o.type = 'sawtooth';
+    const vib = this.ctx.createOscillator();
+    const vibG = this.ctx.createGain();
+    vib.frequency.value = V.vibRate;
+    vibG.gain.value = V.pitch * V.vib;
+    vib.connect(vibG).connect(o.frequency);
+    const f1 = this.ctx.createBiquadFilter(), f2 = this.ctx.createBiquadFilter();
+    f1.type = f2.type = 'bandpass';
+    f1.Q.value = 6; f2.Q.value = 9;
+    const g = this.ctx.createGain();
+    const mix = this.ctx.createGain();
+    mix.gain.value = 1;
+    o.connect(f1).connect(mix);
+    o.connect(f2).connect(mix);
+    mix.connect(g).connect(this.out(this.sfxBus, this.curPan));
+    g.gain.setValueAtTime(0.0001, t0);
+    for (const [p, vow, at] of shapes) {
+      const t = t0 + at * V.len;
+      o.frequency.linearRampToValueAtTime(V.pitch * p, t + 0.04);
+      f1.frequency.linearRampToValueAtTime(F[vow][0] * V.formant, t + 0.04);
+      f2.frequency.linearRampToValueAtTime(F[vow][1] * V.formant, t + 0.04);
+      g.gain.linearRampToValueAtTime(0.5 * v, t + 0.03);
+      if (kind === 'hehe') g.gain.linearRampToValueAtTime(0.05, t + 0.1);
+    }
+    g.gain.exponentialRampToValueAtTime(0.0001, end);
+    o.frequency.setValueAtTime(V.pitch, t0);
+    o.start(t0); vib.start(t0);
+    o.stop(end + 0.05); vib.stop(end + 0.05);
+  }
   // ---------------------------------------------------------- Effekte
   click() { this.tone(880, 0.06, { type: 'triangle', vol: 0.15 }); }
   select() { this.tone(660, 0.08, { type: 'square', vol: 0.1 }); this.tone(990, 0.12, { type: 'square', vol: 0.1, delay: 0.07 }); }
@@ -146,7 +226,9 @@ export class Audio {
     this.noise(0.25, { vol: 0.3 * v, freq: 600, q: 0.7 });
     this.tone(900, 0.4, { type: 'square', vol: 0.1 * v, slide: 0.3 });
     this.tone(1400, 0.25, { type: 'sine', vol: 0.1 * v, slide: 1.6, delay: 0.1 });
+    this.voice(k, 'hit');
   }
+  boing(k) { const v = this.near(k); if (v) { this.tone(220, 0.35, { type: 'sine', vol: 0.3 * v, slide: 2.6 }); this.tone(330, 0.25, { type: 'triangle', vol: 0.12 * v, slide: 2.2, delay: 0.03 }); } }
   pop(k) { const v = this.near(k); if (v) { this.tone(1200, 0.08, { type: 'sine', vol: 0.25 * v, slide: 0.4 }); this.noise(0.1, { vol: 0.2 * v, freq: 3000 }); } }
   splat(k) { const v = this.near(k); if (v) { this.noise(0.3, { vol: 0.3 * v, freq: 500, slide: 0.4, type: 'lowpass' }); } }
   itemBox() { this.tone(1318, 0.06, { type: 'triangle', vol: 0.12 }); this.tone(1760, 0.08, { type: 'triangle', vol: 0.1, delay: 0.05 }); }
@@ -169,39 +251,68 @@ export class Audio {
   setEngines(n) {
     if (!this.ctx) return;
     this.stopEngines();
+    const loopNoise = (type, freq, q) => {
+      const s = this.ctx.createBufferSource();
+      s.buffer = this.noiseBuf;
+      s.loop = true;
+      const f = this.ctx.createBiquadFilter();
+      f.type = type; f.frequency.value = freq; f.Q.value = q;
+      const g = this.ctx.createGain();
+      g.gain.value = 0;
+      s.connect(f).connect(g).connect(this.sfxBus);
+      s.start();
+      return { s, f, g };
+    };
     for (let i = 0; i < n; i++) {
       const o = this.ctx.createOscillator();
       const o2 = this.ctx.createOscillator();
       const f = this.ctx.createBiquadFilter();
       const g = this.ctx.createGain();
+      const am = this.ctx.createGain();
       o.type = 'sawtooth';
       o2.type = 'square';
       f.type = 'lowpass';
       f.frequency.value = 600;
       g.gain.value = 0;
+      am.gain.value = 1;
+      // „Tuckern“: Lautstärke schwankt im Takt des Motors
+      const lfo = this.ctx.createOscillator();
+      const lfoG = this.ctx.createGain();
+      lfo.frequency.value = 14;
+      lfoG.gain.value = 0.35;
+      lfo.connect(lfoG).connect(am.gain);
       o.connect(f);
       o2.connect(f);
-      f.connect(g).connect(this.sfxBus);
-      o.start();
-      o2.start();
-      this.engines.push({ o, o2, f, g });
+      f.connect(am).connect(g).connect(this.sfxBus);
+      o.start(); o2.start(); lfo.start();
+      const screech = loopNoise('bandpass', 2600, 4);
+      const rumble = loopNoise('lowpass', 260, 1);
+      this.engines.push({ o, o2, f, g, lfo, screech, rumble });
     }
   }
-  updateEngine(i, speed, boosting) {
+  updateEngine(i, speed, boosting, drifting = false, offroad = false) {
     const e = this.engines[i];
     if (!e) return;
     const t = this.ctx.currentTime;
-    const f = 55 + Math.abs(speed) * 3.2 + (boosting ? 40 : 0);
+    const s = Math.abs(speed);
+    const f = 55 + s * 3.2 + (boosting ? 40 : 0);
+    const share = 1 / Math.max(1, this.engines.length * 0.7);
     e.o.frequency.setTargetAtTime(f, t, 0.05);
     e.o2.frequency.setTargetAtTime(f * 0.5, t, 0.05);
-    e.f.frequency.setTargetAtTime(400 + Math.abs(speed) * 30, t, 0.05);
-    e.g.gain.setTargetAtTime((0.025 + Math.min(1, Math.abs(speed) / 35) * 0.03) / Math.max(1, this.engines.length * 0.7), t, 0.08);
-  }
-  stopEngines() {
+    e.lfo.frequency.setTargetAtTime(10 + s * 0.9, t, 0.1);
+    e.f.frequency.setTargetAtTime(400 + s * 30 + (boosting ? 800 : 0), t, 0.05);
+    e.g.gain.setTargetAtTime((0.025 + Math.min(1, s / 35) * 0.03) * share, t, 0.08);
+    e.screech.f.frequency.setTargetAtTime(2200 + s * 25, t, 0.1);
+    e.screech.g.gain.setTargetAtTime(drifting && s > 8 ? 0.05 * share : 0, t, 0.06);
+    e.rumble.g.gain.setTargetAtTime(offroad && s > 4 ? Math.min(0.25, s / 120) * share : 0, t, 0.08);
+  }  stopEngines() {
     for (const e of this.engines) {
       e.g.gain.value = 0;
       e.o.stop();
       e.o2.stop();
+      e.lfo.stop();
+      e.screech.s.stop();
+      e.rumble.s.stop();
     }
     this.engines = [];
   }

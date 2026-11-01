@@ -34,8 +34,13 @@ export class AIDriver {
     const curveNear = Math.atan2(Ti.x * Tb.z - Ti.z * Tb.x, Ti.x * Tb.x + Ti.z * Tb.z);
 
     // Innenbahn in Kurven
-    let lane = this.lane * ROAD_HALF;
-    if (Math.abs(curve) > 0.25) lane = lane * 0.4 + (curve > 0 ? 1 : -1) * ROAD_HALF * 0.45;
+    const hw = tr.hw[i];
+    let lane = this.lane * hw;
+    if (Math.abs(curve) > 0.25) lane = lane * 0.4 + (curve > 0 ? 1 : -1) * hw * 0.45;
+    // Vor einer Lücke: mittig und mit Vollgas auf die Rampe
+    let gapAhead = false;
+    for (let g = 0; g < 45; g += 3) if (tr.gap[(i + g) % N] || tr.launch[(i + g) % N]) { gapAhead = true; break; }
+    if (gapAhead) lane = 0;
     // Honigpfützen ausweichen
     for (const e of race.items.ents) {
       if (e.type !== 'honey') continue;
@@ -45,6 +50,18 @@ export class AIDriver {
         let ahead = loc.i - i;
         if (ahead < -N / 2) ahead += N;
         if (ahead > 0 && ahead < 15 && Math.abs(loc.lat - lane) < 4) lane = loc.lat + (loc.lat > 0 ? -5 : 5);
+      }
+    }
+    // Hindernissen ausweichen (geschickte Fahrer öfter)
+    if (race.hazards && Math.random() < this.skill) for (const h of race.hazards.list) {
+      const dx = h.pos.x - k.pos.x, dz = h.pos.z - k.pos.z;
+      if (dx * dx + dz * dz > 1600) continue;
+      const loc = tr.locate(h.pos, k.trackIdx, this._h || (this._h = {}));
+      let ahead = loc.i - i;
+      if (ahead < -N / 2) ahead += N;
+      if (ahead > 0 && ahead < 18 && Math.abs(loc.lat - lane) < h.r + 2.5) {
+        lane = loc.lat + (loc.lat > 0 ? -1 : 1) * (h.r + 3);
+        lane = Math.max(-hw + 1, Math.min(hw - 1, lane));
       }
     }
     const target = tr.pointAt(i + look, lane);
@@ -61,14 +78,14 @@ export class AIDriver {
     if (this.mistake > 0) steer += Math.sin(race.time * 7) * 0.6;
 
     let throttle = 1;
-    if (Math.abs(curve) > 0.9 && k.speed > k.st.maxSpeed * 0.8 && !k.drift.on) throttle = 0.6;
+    if (!gapAhead && Math.abs(curve) > 0.9 && k.speed > k.st.maxSpeed * 0.8 && !k.drift.on) throttle = 0.6;
 
     // Drift in längeren Kurven
     let drift = false;
     if (k.drift.on) {
       drift = Math.abs(curveNear) > 0.12 && Math.sign(curveNear) === k.drift.dir;
       drift = drift || (Math.abs(curve) > 0.3 && Math.sign(curve) === k.drift.dir);
-    } else if (Math.abs(curve) > 0.45 && k.speed > 18 && this.skill > 0.88 && Math.random() < 0.08 * this.skill) {
+    } else if (!gapAhead && Math.abs(curve) > 0.45 && k.speed > 18 && this.skill > 0.88 && Math.random() < 0.08 * this.skill) {
       drift = true;
       steer = curve > 0 ? 1 : -1;
     }
