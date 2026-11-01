@@ -213,7 +213,7 @@ export class Race {
           if (k.lap > 1) { k.lapTimes.push(this.time - k.lapStart); k.lapStart = this.time; }
           if (k.lap > this.laps && !k.finished) this.finishKart(k);
           else if (k.human !== null && k.lap > 1) {
-            if (k.lap === this.laps) { this.hud.message(k.human, 'Letzte Runde!'); this.audio.finalLap(); }
+            if (k.lap === this.laps) { this.hud.message(k.human, 'Letzte Runde!'); this.audio.finalLap(); this.audio.setTempo(1.12); }
             else { this.hud.message(k.human, `Runde ${k.lap}`); this.audio.lap(); }
           }
         }

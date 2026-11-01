@@ -11,6 +11,41 @@ const SONGS = [
   { bpm: 116, root: 60, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 4, 5, 3], lead: 'triangle' }, // Menü
 ];
 
+// Komponierte Melodien: 8 Takte à 8 Achtel. Zahl = Tonleiterstufe (0 = Grundton), "-" = halten, "." = Pause
+const MELODIES = [
+  // Kleeblatt-Wiese – fröhlich
+  '4 - 4 5 4 - 2 - | 5 - 7 - 5 4 2 - | 3 - 3 4 5 - 3 - | 4 - - - . 1 2 3 | 4 - 4 5 4 - 7 - | 9 - 7 - 5 4 5 - | 3 4 5 - 6 - 4 - | 7 - - - . . . .',
+  // Bambuswald – pentatonisch, verspielt
+  '2 - 3 4 3 - 2 0 | 1 - 2 - 0 - . . | 2 - 3 4 5 - 4 3 | 4 - - - 3 - 2 - | 5 - 4 3 4 - 3 2 | 3 - 2 1 2 - 0 - | 1 2 3 - 2 - 1 - | 0 - - - . . . .',
+  // Pilzhöhlen – geheimnisvoll
+  '0 - . 2 4 - . 3 | 2 - - - 1 - . . | 0 - . 2 4 - 5 - | 4 - - - . . . . | 7 - . 6 5 - 4 - | 5 - 3 - 4 - 2 - | 1 - 2 - 3 - 1 - | 0 - - - - - . .',
+  // Honigfabrik – hüpfend
+  '0 2 4 . 4 . 5 4 | 3 . 3 . 2 - . . | 0 2 4 . 4 . 7 6 | 5 - - - 4 - . . | 7 . 7 . 6 5 4 . | 5 . 5 . 4 3 2 . | 3 4 5 . 4 2 1 . | 0 - - - . . . .',
+  // Gletscher – verträumt
+  '4 - 3 - 4 - 6 - | 7 - - - 6 - 4 - | 3 - 2 - 3 - 4 - | 2 - - - . . . . | 4 - 3 - 4 - 7 - | 9 - - - 8 - 7 - | 6 - 4 - 3 - 2 - | 0 - - - - - . .',
+  // Korallenriff – gemütlich
+  '0 . 2 . 3 - 2 . | 1 . 0 . 1 - . . | 2 . 3 . 4 - 3 . | 2 - - - . . . . | 4 . 5 . 4 - 3 . | 2 . 3 . 2 - 1 . | 0 . 1 . 2 - 1 . | 0 - - - . . . .',
+  // Wolkenschloss – festlich
+  '7 - 6 - 7 - 4 - | 5 - - - 4 - . . | 3 - 4 - 5 - 7 - | 6 - - - . . . . | 7 - 9 - 8 - 7 - | 6 - 7 - 5 - 4 - | 3 - 4 - 2 - 1 - | 0 - - - . . . .',
+  // Dschungel-Vulkan – treibend
+  '0 0 . 0 2 . 3 . | 4 . 3 . 2 . 0 . | 0 0 . 0 2 . 3 . | 5 . 4 . 3 - . . | 7 . 6 . 5 . 4 . | 5 . 4 . 3 . 2 . | 3 . 2 . 1 . -1 . | 0 - - - . . . .',
+  // Menü – warm
+  '0 - 2 - 4 - 7 - | 5 - - - 4 - . . | 3 - 5 - 4 - 2 - | 1 - - - . . . . | 0 - 2 - 4 - 7 - | 9 - - - 7 - . . | 8 - 7 - 5 - 6 - | 7 - - - . . . .',
+];
+
+// Text -> Liste aus {step, deg, len}
+function parseMelody(s) {
+  const tok = s.replace(/\|/g, ' ').split(/\s+/).filter(Boolean);
+  const out = [];
+  tok.forEach((t, i) => {
+    if (t === '-') { if (out.length && out.at(-1).open) out.at(-1).len++; return; }
+    if (out.length) out.at(-1).open = false;
+    if (t === '.') return;
+    out.push({ step: i, deg: +t, len: 1, open: true });
+  });
+  return { notes: out, steps: tok.length };
+}
+
 const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
 
 export class Audio {
@@ -177,16 +212,9 @@ export class Audio {
     if (!this.ctx) return;
     this.stopSong();
     const song = SONGS[i % SONGS.length];
-    // Melodie mit festem Zufall pro Lied
-    let s = i * 7919 + 13;
-    const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
-    const melody = [];
-    for (let bar = 0; bar < 4; bar++) {
-      const row = [];
-      for (let st = 0; st < 8; st++) row.push(r() < 0.72 ? Math.floor(r() * song.scale.length) : -1);
-      melody.push(row);
-    }
-    const step = 60 / song.bpm / 2; // Achtel
+    const mel = parseMelody(MELODIES[i % MELODIES.length]);
+    const at = new Map(mel.notes.map((m) => [m.step, m]));
+    this.tempo = 1;
     let next = this.ctx.currentTime + 0.1;
     let n = 0;
     const note = (deg, oct = 0) => {
@@ -194,26 +222,37 @@ export class Audio {
       const o = Math.floor(deg / L);
       return song.root + song.scale[((deg % L) + L) % L] + 12 * (o + oct);
     };
+    const lead = { type: song.lead, vol: song.lead === 'sawtooth' ? 0.05 : song.lead === 'sine' ? 0.11 : 0.08 };
     const tick = () => {
+      const step = 60 / (song.bpm * this.tempo) / 2; // Achtel
       while (next < this.ctx.currentTime + 0.25) {
-        const bar = Math.floor(n / 8) % 4, st = n % 8;
-        const chord = song.prog[bar];
-        const t = next - this.ctx.currentTime;
-        const opt = { bus: this.musicBus, delay: t };
-        if (st % 2 === 0) this.tone(midi(note(chord, -2)), step * 1.8, { ...opt, type: 'triangle', vol: 0.32 });
-        if (st === 0 || st === 4) this.noise(0.12, { ...opt, vol: 0.35, freq: 120, type: 'lowpass' });
+        const pos = n % mel.steps, st = pos % 8, bar = Math.floor(pos / 8);
+        const pass = Math.floor(n / mel.steps);
+        const chord = song.prog[bar % 4];
+        const opt = { bus: this.musicBus, delay: next - this.ctx.currentTime };
+        // Bass: im zweiten Durchgang mit Quinte
+        if (st % 2 === 0) this.tone(midi(note(chord + (pass % 2 && st % 4 === 2 ? 4 : 0), -2)), step * 1.8, { ...opt, type: 'triangle', vol: 0.32 });
+        // Schlagzeug
+        if (st === 0 || st === 4 || (this.tempo > 1 && st === 6)) this.noise(0.12, { ...opt, vol: 0.35, freq: 120, type: 'lowpass' });
         if (st === 2 || st === 6) this.noise(0.08, { ...opt, vol: 0.12, freq: 2500, q: 0.6 });
-        this.noise(0.03, { ...opt, vol: 0.04, freq: 8000, type: 'highpass' });
+        this.noise(0.03, { ...opt, vol: this.tempo > 1 ? 0.07 : 0.04, freq: 8000, type: 'highpass' });
+        // Flächenklang
         if (st % 4 === 0) for (const d of [0, 2, 4]) this.tone(midi(note(chord + d, 0)), step * 3.5, { ...opt, type: 'sine', vol: 0.05, attack: 0.03 });
-        const m = melody[(Math.floor(n / 8) + (Math.floor(n / 32) % 2) * 2) % 4][st];
-        if (m >= 0 && Math.floor(n / 64) % 4 !== 3) this.tone(midi(note(m + chord, 1)), step * 0.9, { ...opt, type: song.lead, vol: song.lead === 'sawtooth' ? 0.05 : 0.08 });
+        // Melodie (+ Zweitstimme und Arpeggio ab dem zweiten Durchgang)
+        const m = at.get(pos);
+        if (m) {
+          this.tone(midi(note(m.deg, 1)), step * m.len * 0.92, { ...opt, ...lead });
+          if (pass % 2) this.tone(midi(note(m.deg - 2, 1)), step * m.len * 0.9, { ...opt, type: 'triangle', vol: 0.035 });
+        }
+        if (pass % 2) this.tone(midi(note(chord + [0, 2, 4, 7][st % 4], 1)), step * 0.8, { ...opt, type: 'square', vol: 0.018 });
         next += step;
         n++;
       }
-    };
-    this.songTimer = setInterval(tick, 50);
+    };    this.songTimer = setInterval(tick, 50);
     tick();
   }
+  // schneller in der letzten Runde
+  setTempo(t) { this.tempo = t; }
   stopSong() {
     if (this.songTimer) clearInterval(this.songTimer);
     this.songTimer = null;
