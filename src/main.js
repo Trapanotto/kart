@@ -1,0 +1,160 @@
+// Trapanotto Kart – Einstieg
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { loadAll } from './assets.js';
+import { Input } from './input.js';
+import { Audio } from './audio.js';
+import { Race } from './race.js';
+import { Menu } from './menu.js';
+import { Showroom } from './showroom.js';
+import { TRACKS, POINTS, CHARACTERS } from './data.js';
+
+const DEFAULTS = { fur: true, shadows: true, quality: 1, music: 0.5, sfx: 0.7 };
+
+function loadSettings() {
+  try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem('pgp_settings') || '{}') }; } catch (e) { return { ...DEFAULTS }; }
+}
+
+class App {
+  constructor() {
+    this.settings = loadSettings();
+    const canvas = document.getElementById('game');
+    const r = (this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' }));
+    r.outputColorSpace = THREE.SRGBColorSpace;
+    r.toneMapping = THREE.NeutralToneMapping;
+    r.toneMappingExposure = 1.0;
+    r.shadowMap.enabled = true;
+    r.shadowMap.type = THREE.PCFSoftShadowMap;
+    const pmrem = new THREE.PMREMGenerator(r);
+    this.envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    this.input = new Input();
+    this.audio = new Audio();
+    this.race = null;
+    this.gp = null;
+    this.applySettings();
+    window.addEventListener('resize', () => this.resize());
+    this.resize();
+    const unlock = () => this.audio.unlock();
+    window.addEventListener('pointerdown', unlock);
+    window.addEventListener('keydown', unlock);
+    window.addEventListener('touchstart', unlock);
+  }
+
+  async init() {
+    const bar = document.querySelector('#loading .fill');
+    await loadAll((p) => { bar.style.width = Math.round(p * 100) + '%'; });
+    this.showroom = new Showroom(this);
+    this.menu = new Menu(this);
+    this.input.setupTouch(document.getElementById('touch'));
+    document.getElementById('loading').classList.add('done');
+    this.menu.title();
+    this.last = performance.now();
+    this.renderer.setAnimationLoop(() => this.frame());
+  }
+
+  applySettings() {
+    try { localStorage.setItem('pgp_settings', JSON.stringify(this.settings)); } catch (e) { /* egal */ }
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.settings.quality));
+    this.renderer.shadowMap.enabled = this.settings.shadows;
+    this.audio.setVolumes(this.settings.music, this.settings.sfx);
+    this.resize();
+  }
+
+  resize() {
+    this.renderer.setSize(window.innerWidth, window.innerHeight, false);
+  }
+
+  frame() {
+    const now = performance.now();
+    const dt = Math.min(0.05, (now - this.last) / 1000);
+    this.last = now;
+    if (this.race) {
+      if (!this.race.paused && this.race.state !== 'done' && this.input.consumePause()) this.pause();
+      else if (this.race.paused) this.input.consumePause();
+      const steps = Math.ceil(dt / (1 / 60));
+      for (let i = 0; i < steps; i++) this.race.update(dt / steps);
+      this.race.render(this.renderer);
+      document.body.classList.toggle('racing', !this.race.paused && !this.menu.visible());
+    } else {
+      this.input.consumePause();
+      this.showroom.update(dt);
+      this.showroom.render(this.renderer);
+      document.body.classList.remove('racing');
+    }
+    this.menu.update(dt);
+  }
+
+  // ------------------------------------------------------------ Rennen
+  startRace(cfg) {
+    this.endRace();
+    this.lastCfg = cfg;
+    this.lastPlayers = cfg.players.length;
+    this.menu.hide();
+    this.race = new Race(this, cfg);
+  }
+
+  endRace() {
+    if (this.race) {
+      this.race.dispose();
+      this.race = null;
+    }
+  }
+
+  restartRace() {
+    if (!this.lastCfg) return;
+    this.startRace(this.lastCfg);
+  }
+
+  quitRace(toTitle = true) {
+    this.endRace();
+    this.gp = null;
+    if (toTitle) this.menu.title();
+  }
+
+  pause() {
+    this.race.paused = true;
+    this.menu.pause();
+  }
+
+  resume() {
+    if (!this.race) return;
+    this.race.paused = false;
+    this.input.pausePressed = false;
+    this.menu.hide();
+  }
+
+  onRaceEnd(res) {
+    if (this.gp) {
+      for (const r of res.list) this.gp.points[r.char.id] = (this.gp.points[r.char.id] || 0) + (POINTS[r.place - 1] || 0);
+    }
+    this.menu.results(res);
+  }
+
+  // ------------------------------------------------------------ Grand Prix
+  gpTracks() {
+    return TRACKS.map((t, i) => (t.cup === this.gp.cup ? i : -1)).filter((i) => i >= 0);
+  }
+
+  startGp(cup, cls, players) {
+    this.gp = { cup, cls, players, race: 0, points: {} };
+    for (const c of CHARACTERS) this.gp.points[c.id] = 0;
+    this.startRace({ mode: 'gp', track: this.gpTracks()[0], cls, players });
+  }
+
+  nextGpRace() {
+    const gp = this.gp;
+    gp.race++;
+    // Startaufstellung: Schlechteste vorne, Führende hinten
+    const grid = Object.entries(gp.points).sort((a, b) => a[1] - b[1]).map((e) => e[0]);
+    const gpSaved = gp;
+    this.startRace({ mode: 'gp', track: this.gpTracks()[gp.race], cls: gp.cls, players: gp.players, grid });
+    this.gp = gpSaved;
+  }
+}
+
+const app = new App();
+window.pgp = app;
+app.init().catch((e) => {
+  console.error(e);
+  document.querySelector('#loading p').textContent = 'Fehler beim Laden: ' + e.message;
+});

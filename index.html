@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Trapanotto Kart</title>
+  <meta name="description" content="Flauschiges Kart-Rennspiel mit süssen Tieren – direkt im Browser.">
+  <meta name="theme-color" content="#7EC8F2">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐾</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div id="hud"></div>
+  <div id="touch"></div>
+  <div id="ui"></div>
+  <div id="loading">
+    <div class="paw">🐾</div>
+    <h1>Trapanotto Kart</h1>
+    <div class="bar"><div class="fill"></div></div>
+    <p>Die Tiere putzen noch ihr Fell …</p>
+  </div>
+  <noscript>Dieses Spiel braucht JavaScript.</noscript>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
