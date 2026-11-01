@@ -304,6 +304,7 @@ export class Kart {
         if (!w) continue;
         w.getWorldPosition(_v);
         _v.y = this.pos.y + 0.15;
+        if (this.race.skids) this.race.skids.add(_w.set(_v.x, this.pos.y + 0.05, _v.z), this.visYaw);
         for (let i = 0; i < (d.level ? 3 : 1); i++) {
           fx.glow.emit(_v, _w.set(rand() * 6 - this.vel.x * 0.1, 2 + Math.random() * 3, rand() * 6 - this.vel.z * 0.1), col, d.level ? 0.35 : 0.2, 0.25, { grav: 14 });
         }

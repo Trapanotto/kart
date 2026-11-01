@@ -212,6 +212,7 @@ export class Menu {
       <div class="opts">
         <label class="focusable" tabindex="0"><input type="checkbox" id="o-fur" ${s.fur ? 'checked' : ''}> Flauschiges Fell (Shader)</label>
         <label class="focusable" tabindex="0"><input type="checkbox" id="o-shadows" ${s.shadows ? 'checked' : ''}> Schatten</label>
+        <label class="focusable" tabindex="0"><input type="checkbox" id="o-bloom" ${s.bloom ? 'checked' : ''}> Leuchteffekte</label>
         <label>Grafik
           <select id="o-quality" class="focusable">
             <option value="0.75" ${s.quality == 0.75 ? 'selected' : ''}>Schnell</option>
@@ -220,12 +221,13 @@ export class Menu {
           </select></label>
         <label>Musik <input type="range" id="o-music" min="0" max="1" step="0.05" value="${s.music}" class="focusable"></label>
         <label>Effekte <input type="range" id="o-sfx" min="0" max="1" step="0.05" value="${s.sfx}" class="focusable"></label>
-        <p class="hint">Fell und Schatten gelten ab dem nächsten Rennen. Bei Ruckeln: Fell oder Schatten ausschalten.</p>
+        <p class="hint">Fell und Schatten gelten ab dem nächsten Rennen. Bei Ruckeln: Fell, Schatten oder Leuchteffekte ausschalten.</p>
       </div>
       <button class="btn back focusable" data-act="back">← Zurück</button>`, { back: () => this.title() });
     const save = () => {
       s.fur = this.el.querySelector('#o-fur').checked;
       s.shadows = this.el.querySelector('#o-shadows').checked;
+      s.bloom = this.el.querySelector('#o-bloom').checked;
       s.quality = +this.el.querySelector('#o-quality').value;
       s.music = +this.el.querySelector('#o-music').value;
       s.sfx = +this.el.querySelector('#o-sfx').value;

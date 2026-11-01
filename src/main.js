@@ -7,9 +7,10 @@ import { Audio } from './audio.js';
 import { Race } from './race.js';
 import { Menu } from './menu.js';
 import { Showroom } from './showroom.js';
+import { Post } from './post.js';
 import { TRACKS, POINTS, CHARACTERS } from './data.js';
 
-const DEFAULTS = { fur: true, shadows: true, quality: 1, music: 0.5, sfx: 0.7 };
+const DEFAULTS = { fur: true, shadows: true, bloom: true, quality: 1, music: 0.5, sfx: 0.7 };
 
 function loadSettings() {
   try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem('pgp_settings') || '{}') }; } catch (e) { return { ...DEFAULTS }; }
@@ -27,6 +28,7 @@ class App {
     r.shadowMap.type = THREE.PCFSoftShadowMap;
     const pmrem = new THREE.PMREMGenerator(r);
     this.envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    try { this.post = new Post(r); } catch (e) { console.warn('Kein Bloom', e); this.post = null; }
     this.input = new Input();
     this.audio = new Audio();
     this.race = null;
@@ -62,6 +64,7 @@ class App {
 
   resize() {
     this.renderer.setSize(window.innerWidth, window.innerHeight, false);
+    if (this.post) this.post.resize();
   }
 
   frame() {

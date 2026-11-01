@@ -199,3 +199,10 @@ body.racing #touch:not(:empty) { display: block; }
 #touch button.small { width: 64px; height: 64px; font-size: 24px; }
 #touch button[data-k=drift] { font-size: 20px; }
 #touch button.on { background: var(--yellow); }
+
+/* Geschwindigkeitslinien beim Turbo */
+.h-speed { position: absolute; inset: -10%; opacity: 0; transition: opacity 0.25s; pointer-events: none;
+  background: repeating-conic-gradient(from 0deg at 50% 52%, rgba(255,255,255,0) 0deg 3.2deg, rgba(255,255,255,0.55) 3.2deg 3.7deg);
+  -webkit-mask-image: radial-gradient(circle at 50% 52%, transparent 38%, #000 80%); mask-image: radial-gradient(circle at 50% 52%, transparent 38%, #000 80%); }
+.h-speed.on { opacity: 0.8; animation: speedlines 0.12s infinite alternate; }
+@keyframes speedlines { from { transform: scale(1) rotate(0deg); } to { transform: scale(1.04) rotate(1.4deg); } }

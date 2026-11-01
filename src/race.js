@@ -5,7 +5,7 @@ import { Track } from './track.js';
 import { Kart } from './kart.js';
 import { AIDriver } from './ai.js';
 import { ItemManager } from './items.js';
-import { Particles, Ambient } from './effects.js';
+import { Particles, Ambient, Skids } from './effects.js';
 import { Hud } from './hud.js';
 import { createKartModel, FUR } from './assets.js';
 
@@ -50,6 +50,7 @@ export class Race {
     this.track.build(scene, this.settings);
     this.fx = { glow: new Particles(scene, 2500, true), soft: new Particles(scene, 2500, false) };
     this.ambient = new Ambient(this.fx, th.particles);
+    this.skids = new Skids(scene);
 
     // Karts
     const humans = cfg.players.map((p) => CHARACTERS.find((c) => c.id === p.char));
@@ -390,15 +391,32 @@ export class Race {
   }
 
   render(renderer) {
+    if (this.settings.bloom && this.app.post) this.app.post.render(this);
+    else this.renderViews(renderer, null);
+  }
+
+  // Zeichnet alle Ansichten: direkt auf den Bildschirm (target = null) oder in ein Zwischenbild
+  renderViews(renderer, target) {
     const size = renderer.getSize(_v);
     const W = size.x, H = size.y;
     const n = this.cams.length;
-    renderer.setScissorTest(n > 1);
     const pr = renderer.getPixelRatio();
+    const set = (r) => {
+      if (target) {
+        target.viewport.set(r.x * pr, r.y * pr, r.w * pr, r.h * pr);
+        target.scissor.copy(target.viewport);
+        target.scissorTest = n > 1;
+        renderer.setRenderTarget(target);
+      } else {
+        renderer.setRenderTarget(null);
+        renderer.setScissorTest(n > 1);
+        renderer.setViewport(r.x, r.y, r.w, r.h);
+        renderer.setScissor(r.x, r.y, r.w, r.h);
+      }
+    };
     this.cams.forEach((c, i) => {
       const r = this.viewRect(i, n, W, H);
-      renderer.setViewport(r.x, r.y, r.w, r.h);
-      renderer.setScissor(r.x, r.y, r.w, r.h);
+      set(r);
       c.cam.aspect = r.w / r.h;
       c.cam.fov = c.fov;
       c.cam.updateProjectionMatrix();
@@ -409,8 +427,7 @@ export class Race {
     });
     if (this.overview) {
       const r = { x: W / 2, y: 0, w: W / 2, h: H / 2 };
-      renderer.setViewport(r.x, r.y, r.w, r.h);
-      renderer.setScissor(r.x, r.y, r.w, r.h);
+      set(r);
       const o = this.overview;
       o.aspect = r.w / r.h;
       o.updateProjectionMatrix();
@@ -418,9 +435,13 @@ export class Race {
       o.lookAt(0, 0, 0);
       renderer.render(this.scene, o);
     }
+    if (target) {
+      target.viewport.set(0, 0, target.width, target.height);
+      target.scissor.set(0, 0, target.width, target.height);
+      target.scissorTest = false;
+    }
     renderer.setScissorTest(false);
   }
-
   dispose() {
     this.audio.stopEngines();
     this.hud.dispose();

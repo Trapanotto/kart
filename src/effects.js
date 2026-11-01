@@ -25,14 +25,14 @@ export class Particles {
     this.mat = new THREE.ShaderMaterial({
       transparent: true, depthWrite: false,
       blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
-      uniforms: { uScale: { value: 500 } },
+      uniforms: { uScale: { value: 500 }, uGain: { value: additive ? 2.6 : 1 } },
       vertexShader: `attribute float size; attribute float alpha; attribute vec3 color;
         varying vec3 vC; varying float vA; uniform float uScale;
         void main(){ vC = color; vA = alpha; vec4 mv = modelViewMatrix * vec4(position,1.0);
           gl_PointSize = size * uScale / max(0.5, -mv.z); gl_Position = projectionMatrix * mv; }`,
-      fragmentShader: `varying vec3 vC; varying float vA;
+      fragmentShader: `varying vec3 vC; varying float vA; uniform float uGain;
         void main(){ vec2 d = gl_PointCoord - 0.5; float r = length(d); if (r > 0.5) discard;
-          float a = smoothstep(0.5, 0.15, r) * vA; gl_FragColor = vec4(vC, a);
+          float a = smoothstep(0.5, 0.15, r) * vA; gl_FragColor = vec4(vC * uGain, a);
           #include <colorspace_fragment>
         }`,
     });
@@ -115,5 +115,34 @@ export class Ambient {
         case 'sparkles': v.set(0, 0.5, 0); this.fx.glow.emit(p, v, '#FFFFFF', 0.3, 2.5); break;
       }
     }
+  }
+}
+
+// Reifenspuren beim Driften (Ringspeicher)
+export class Skids {
+  constructor(scene, max = 2400) {
+    const geo = new THREE.PlaneGeometry(0.34, 0.9);
+    geo.rotateX(-Math.PI / 2);
+    const mat = new THREE.MeshBasicMaterial({ color: '#2A2228', transparent: true, opacity: 0.32, depthWrite: false,
+      polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+    this.mesh = new THREE.InstancedMesh(geo, mat, max);
+    this.mesh.count = 0;
+    this.mesh.frustumCulled = false;
+    this.mesh.renderOrder = 1;
+    scene.add(this.mesh);
+    this.max = max;
+    this.i = 0;
+    this.m = new THREE.Matrix4();
+    this.q = new THREE.Quaternion();
+    this.s = new THREE.Vector3(1, 1, 1);
+    this.up = new THREE.Vector3(0, 1, 0);
+  }
+  add(pos, yaw) {
+    this.q.setFromAxisAngle(this.up, yaw);
+    this.m.compose(pos, this.q, this.s);
+    this.mesh.setMatrixAt(this.i % this.max, this.m);
+    this.i++;
+    this.mesh.count = Math.min(this.i, this.max);
+    this.mesh.instanceMatrix.needsUpdate = true;
   }
 }
