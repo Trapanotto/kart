@@ -40,10 +40,11 @@ function speckle(ctx, w, h, colA, colB, n, rmax) {
 }
 
 export class Track {
-  constructor(def, theme) {
+  constructor(def, theme, mirror = false) {
     this.def = def;
     this.theme = theme;
-    const { points, length } = sampleCenterline(def.shape);
+    let { points, length } = sampleCenterline(def.shape);
+    if (mirror) points = points.map((p) => [-p[0], p[1], p[2]]);
     this.length = length;
     const N = (this.N = points.length);
     this.P = points.map((p) => new THREE.Vector3(p[0], p[1], p[2]));

@@ -48,7 +48,7 @@ export class Race {
     sun.shadow.normalBias = 0.04;
     scene.add(sun, sun.target);
 
-    this.track = new Track(this.def, th);
+    this.track = new Track(this.def, th, !!this.cls.mirror);
     this.track.build(scene, this.settings);
     this.fx = { glow: new Particles(scene, 2500, true), soft: new Particles(scene, 2500, false) };
     this.ambient = new Ambient(this.fx, th.particles);
@@ -57,8 +57,9 @@ export class Race {
     // Karts
     const humans = cfg.players.map((p) => CHARACTERS.find((c) => c.id === p.char));
     const used = new Set(humans.map((c) => c.id));
-    const ai = this.mode === 'tt' ? [] : CHARACTERS.filter((c) => !used.has(c.id));
-    const total = this.mode === 'tt' ? humans.length : Math.max(8, humans.length);
+    const noAI = this.mode === 'tt' || this.mode === 'vs';
+    const ai = noAI ? [] : CHARACTERS.filter((c) => !used.has(c.id));
+    const total = noAI ? humans.length : Math.max(8, humans.length);
     while (humans.length + ai.length > total) ai.pop();
     this.karts = [];
     this.humans = [];
@@ -71,6 +72,13 @@ export class Race {
       const k = new Kart(this, c, this.karts.length, null);
       k.ai = new AIDriver(k, this.cls.ai * (0.95 + Math.random() * 0.08));
       this.karts.push(k);
+    }
+    // Rivale: ein besonders starker Computerfahrer
+    const aiKarts = this.karts.filter((k) => k.ai);
+    if (aiKarts.length) {
+      this.rival = aiKarts[Math.floor(Math.random() * aiKarts.length)];
+      this.rival.rival = true;
+      this.rival.ai.skill = Math.min(1.09, this.rival.ai.skill * 1.07);
     }
     // Startaufstellung: Reihenfolge aus GP-Wertung oder Spieler hinten
     let order = cfg.grid ? cfg.grid.map((id) => this.karts.find((k) => k.char.id === id)).filter(Boolean) : null;
@@ -175,6 +183,7 @@ export class Race {
         this.state = 'race';
         this.stateT = 0;
         this.hud.bigText('LOS!', 'go');
+        if (this.rival) setTimeout(() => this.announce(`⚔️ Dein Rivale: ${this.rival.char.name}`), 1200);
         this.audio.go();
         setTimeout(() => this.hud.hideBig(), 900);
         for (const k of this.karts) {
@@ -369,6 +378,8 @@ export class Race {
         b.vel.x += nx * imp * wb; b.vel.z += nz * imp * wb;
         if (imp > 4) this.audio.bump(a.human !== null ? a : b);
       }
+      if (a.lolly > 0 && !(b.lolly > 0)) b.hit();
+      if (b.lolly > 0 && !(a.lolly > 0)) a.hit();
       this.items.passCloud(a, b);
       this.items.passCloud(b, a);
     }

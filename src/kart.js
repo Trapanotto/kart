@@ -6,7 +6,7 @@ import { loopFrame, LOOP_LEN, LOOP_SHIFT, underwater } from './features.js';
 const DRIFT_LEVELS = [0.9, 1.8, 2.8];
 const DRIFT_COLORS = ['#FFFFFF', '#4FC3FF', '#FF9A2B', '#C77DFF'];
 const BOOST_TIME = [0, 0.6, 1.05, 1.6];
-const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _q = new THREE.Quaternion();
+const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _q = new THREE.Quaternion(), _u = new THREE.Vector3();
 const _f = new THREE.Vector3(), _up = new THREE.Vector3(), _x = new THREE.Vector3(), _m4 = new THREE.Matrix4();
 
 export function kartStats(c, cls) {
@@ -115,13 +115,14 @@ export class Kart {
   }
 
   hit(strength = 1) {
-    if (this.finished) return false;
+    if (this.finished || this.lolly > 0) return false;
     if (this.shield > 0) {
       this.shield = 0;
       this.race.audio.pop(this);
       this.race.burst(this.pos, '#CFF6FF', 14);
       return false;
     }
+    this.race.items.onHit(this);
     this.stun = 1.15 * strength * this.st.stunMul;
     this.spin = 0;
     this.speed *= 0.25;
@@ -146,7 +147,7 @@ export class Kart {
     let steer = active ? inp.steer : 0;
     if (this.stun > 0) { throttle = 0; brake = 0; steer = 0; }
 
-    for (const k of ['boostTime', 'honey', 'drowsy', 'small', 'shield', 'trick']) if (this[k] > 0) this[k] = Math.max(0, this[k] - dt);
+    for (const k of ['boostTime', 'honey', 'drowsy', 'small', 'shield', 'trick', 'lolly', 'draftBoostCool']) if (this[k] > 0) this[k] = Math.max(0, this[k] - dt);
     if (this.stun > 0) { this.stun -= dt; this.spin += dt * 11; } else this.spin *= 0.85;
     if (this.shake > 0) this.shake -= dt;
     if (this.cloud > 0) {
@@ -185,6 +186,7 @@ export class Kart {
     if (this.small > 0) maxV *= 0.72;
     if (this.cloud > 0) maxV *= 1.06;
     if (this.uw) maxV *= 0.93;
+    if (this.lolly > 0) maxV *= 1.2;
     if (this.boostTime > 0) maxV *= 1.38;
 
     // Längsbewegung
@@ -362,6 +364,31 @@ export class Kart {
         }
       }
     }
+
+    // Windschatten: dicht hinter einem anderen Kart gibt es nach kurzer Zeit einen Turbo
+    if (racing && this.grounded && this.speed > 18 && this.boostTime <= 0) {
+      let drafting = false;
+      for (const o of this.race.karts) {
+        if (o === this) continue;
+        const dx = o.pos.x - this.pos.x, dz = o.pos.z - this.pos.z;
+        const d2 = dx * dx + dz * dz;
+        if (d2 < 6 || d2 > 225 || Math.abs(o.pos.y - this.pos.y) > 2) continue;
+        const along = dx * f.x + dz * f.z;
+        const side = Math.abs(-f.z * dx + f.x * dz);
+        if (along > 0 && side < 1.8) { drafting = true; break; }
+      }
+      this.draft = drafting ? (this.draft || 0) + dt : Math.max(0, (this.draft || 0) - dt * 2);
+      if (this.draft > 1.3) {
+        this.draft = 0;
+        this.boost(1.0, 1);
+        if (this.human !== null) this.race.hud.message(this.human, '💨 Windschatten!', 1.2);
+      }
+      if (this.draft > 0.3 && this.race.fxOn && Math.random() < 0.6) {
+        const s = Math.random() < 0.5 ? -1 : 1;
+        _v.set(this.pos.x - f.z * s * 1.3 + f.x * 1.5, this.pos.y + 0.8 + Math.random(), this.pos.z + f.x * s * 1.3 + f.z * 1.5);
+        this.race.fx.soft.emit(_v, _u.set(-f.x * 25, 0, -f.z * 25), '#FFFFFF', 0.18, 0.25);
+      }
+    } else this.draft = 0;
 
     // Falsche Richtung
     if (racing && this.speed > 5) {

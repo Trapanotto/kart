@@ -22,7 +22,7 @@ export class Hud {
         <div class="h-speed"></div>
         <div class="h-water"><i></i><i></i><i></i><i></i><i></i></div>
         <div class="h-item"><div class="slot"><span class="icon"></span><span class="count"></span></div></div>
-        <div class="h-lap"><div class="lap"></div><div class="time"></div><div class="best"></div></div>
+        <div class="h-lap"><div class="lap"></div><div class="time"></div><div class="speedo"></div><div class="best"></div></div>
         <div class="h-pos"><span class="num"></span><span class="suf">.</span></div>
         <div class="h-msg"></div>
         <div class="h-wrong">↩ Falsche Richtung!</div>
@@ -31,7 +31,7 @@ export class Hud {
       this.root.appendChild(el);
       return {
         el, k, icon: el.querySelector('.icon'), count: el.querySelector('.count'), slot: el.querySelector('.slot'),
-        lap: el.querySelector('.lap'), time: el.querySelector('.time'), best: el.querySelector('.best'),
+        lap: el.querySelector('.lap'), time: el.querySelector('.time'), best: el.querySelector('.best'), speedo: el.querySelector('.speedo'),
         num: el.querySelector('.num'), msg: el.querySelector('.h-msg'), wrong: el.querySelector('.h-wrong'),
         drift: el.querySelectorAll('.h-drift i'), speed: el.querySelector('.h-speed'), msgT: 0, lastRank: 0,
       };
@@ -93,7 +93,8 @@ export class Hud {
       ctx.fillStyle = k.char.color;
       ctx.fill();
       ctx.lineWidth = k.human !== null ? 3 : 1.5;
-      ctx.strokeStyle = k.human !== null ? '#FFD447' : '#333';
+      ctx.strokeStyle = k.human !== null ? '#FFD447' : k.rival ? '#E8434F' : '#333';
+      if (k.rival) ctx.lineWidth = 3;
       ctx.stroke();
     }
     if (this.race.ghost) {
@@ -128,6 +129,7 @@ export class Hud {
     for (const v of this.vps) {
       const k = v.k;
       v.lap.textContent = k.finished ? 'Ziel!' : `Runde ${Math.max(1, Math.min(laps, k.lap))}/${laps}`;
+      v.speedo.textContent = Math.round(Math.max(0, k.speed) * 3.6) + ' km/h';
       v.time.textContent = fmtTime(k.finished ? k.finishTime : race.state === 'race' ? race.time : 0);
       if (race.mode === 'tt') v.best.textContent = race.bestTime ? 'Rekord ' + fmtTime(race.bestTime) : '';
       if (k.rank !== v.lastRank) {

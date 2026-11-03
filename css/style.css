@@ -218,3 +218,15 @@ body.racing #touch:not(:empty) { display: block; }
 .h-water i:nth-child(4) { left: 74%; animation-delay: 2s; width: 10px; height: 10px; }
 .h-water i:nth-child(5) { left: 88%; animation-delay: 1.6s; }
 @keyframes bubble { to { transform: translate(18px, -110vh); } }
+.h-lap .speedo { font-size: 17px; opacity: 0.95; font-variant-numeric: tabular-nums; }
+
+.badge.rival { background: #E8434F; }
+
+
+.trophies { display: flex; gap: 8px; justify-content: center; font-size: 18px; }
+.trophies i { font-style: normal; opacity: 0.35; }
+.medals { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.medals span { background: #fff; border-radius: 99px; padding: 2px 14px; border: 2px solid var(--ink); font-weight: 700; }
+.medals span.got { background: var(--yellow); }
+.record.fail { background: #8A93AA; }
+.newtrophy { font-size: 20px; font-weight: 800; color: #C8552B; }

@@ -126,25 +126,38 @@ export class AIDriver {
     // Items
     inp.item = false;
     inp.back = false;
+    const ahead = race.ranked.find((o) => o.rank === k.rank - 1);
+    const behind = race.ranked.find((o) => o.rank === k.rank + 1);
+    const dist = (o) => (o ? o.pos.distanceTo(k.pos) : Infinity);
+    const aligned = (o) => {
+      const ox = o.pos.x - k.pos.x, oz = o.pos.z - k.pos.z;
+      return Math.abs(Math.atan2(-f.z * ox + f.x * oz, f.x * ox + f.z * oz)) < 0.12;
+    };
+    // Festgehaltenes Item: als Schutz hinten halten, im passenden Moment loslassen
+    if (k.held) {
+      this.heldT = (this.heldT || 0) + dt;
+      const it = k.held.item;
+      let release = this.heldT > (it === 'acorn' ? 5 : 8);
+      if (it === 'acorn' && ahead && dist(ahead) < 40 && aligned(ahead)) release = true;
+      if (it === 'acorn' && behind && dist(behind) < 12) { release = true; this.wantBack = true; }
+      if (it !== 'acorn' && behind && dist(behind) < 15) release = true;
+      inp.item = !release;
+      inp.back = release && !!this.wantBack;
+      if (release) this.wantBack = false;
+      return;
+    }
+    this.heldT = 0;
     if (k.item) {
       this.itemHold += dt;
-      const ahead = race.ranked.find((o) => o.rank === k.rank - 1);
-      const behind = race.ranked.find((o) => o.rank === k.rank + 1);
-      const dist = (o) => (o ? o.pos.distanceTo(k.pos) : Infinity);
       switch (k.item) {
-        case 'acorn':
-          if (this.itemHold > 1 && ahead && dist(ahead) < 45) {
-            const ox = ahead.pos.x - k.pos.x, oz = ahead.pos.z - k.pos.z;
-            const a = Math.atan2(-f.z * ox + f.x * oz, f.x * ox + f.z * oz);
-            if (Math.abs(a) < 0.12) inp.item = true;
-          }
-          if (this.itemHold > 1 && behind && dist(behind) < 14) { inp.item = true; inp.back = true; }
-          if (this.itemHold > 9) inp.item = true;
+        case 'acorn': case 'honey': case 'fakebox':
+          if (this.itemHold > 0.6) inp.item = true; // aufnehmen und hinten halten
           break;
-        case 'honey':
-          if ((behind && dist(behind) < 22 && this.itemHold > 0.8) || this.itemHold > 8) inp.item = true;
+        case 'acorn3':
+          if (!k.orbits) { if (this.itemHold > 0.5) inp.item = true; }
+          else if ((ahead && dist(ahead) < 40 && aligned(ahead) && this.itemHold > 0.8) || this.itemHold > 10) inp.item = true;
           break;
-        case 'carrot': case 'carrot3':
+        case 'carrot': case 'carrot3': case 'goldcarrot':
           if (this.itemHold > 0.7 && Math.abs(curve) < 0.25) inp.item = true;
           break;
         default:
@@ -152,7 +165,6 @@ export class AIDriver {
       }
       if (inp.item) this.itemHold = 0;
       // Taste kurz loslassen für mehrfache Items
-      if (inp.item && k.prevItem) inp.item = false;
-    } else this.itemHold = 0;
+      if (inp.item && k.prevItem) inp.item = false;    } else this.itemHold = 0;
   }
 }

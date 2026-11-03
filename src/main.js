@@ -8,6 +8,7 @@ import { Race } from './race.js';
 import { Menu } from './menu.js';
 import { Showroom } from './showroom.js';
 import { Post } from './post.js';
+import { loadProgress } from './progress.js';
 import { TRACKS, POINTS, CHARACTERS } from './data.js';
 
 const DEFAULTS = { fur: true, shadows: true, bloom: true, quality: 1, music: 0.5, sfx: 0.7 };
@@ -19,6 +20,8 @@ function loadSettings() {
 class App {
   constructor() {
     this.settings = loadSettings();
+    this.progress = loadProgress();
+    this.vsWins = {};
     const canvas = document.getElementById('game');
     const r = (this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' }));
     r.outputColorSpace = THREE.SRGBColorSpace;
@@ -128,7 +131,14 @@ class App {
 
   onRaceEnd(res) {
     if (this.gp) {
-      for (const r of res.list) this.gp.points[r.char.id] = (this.gp.points[r.char.id] || 0) + (POINTS[r.place - 1] || 0);
+      // Qualifikation: mindestens ein Spieler muss Platz 4 oder besser schaffen
+      const best = Math.min(...res.list.filter((r) => r.human !== null).map((r) => r.place));
+      res.failed = best > 4;
+      if (!res.failed) for (const r of res.list) this.gp.points[r.char.id] = (this.gp.points[r.char.id] || 0) + (POINTS[r.place - 1] || 0);
+    }
+    if (res.mode === 'vs') {
+      const w = res.list[0];
+      this.vsWins[w.human] = (this.vsWins[w.human] || 0) + 1;
     }
     this.menu.results(res);
   }

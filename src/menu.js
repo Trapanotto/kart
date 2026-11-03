@@ -2,6 +2,7 @@
 import { CHARACTERS, CLASSES, TRACKS, CUPS, THEMES, POINTS, sampleCenterline } from './data.js';
 import { CONTROLS_HELP } from './input.js';
 import { fmtTime } from './hud.js';
+import { trophy, award, mirrorUnlocked, TROPHY_ICON, medalTimes, medalFor } from './progress.js';
 
 const portrait = (id) => `assets/portraits/${id}.webp`;
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -66,6 +67,7 @@ export class Menu {
     const f = this.flow;
     switch (a) {
       case 'mode': f.mode = d.v; f.chars = []; f.players = 1;
+        if (f.mode === 'vs') app.vsWins = {};
         if (f.mode === 'tt') { f.players = 1; this.classes(); } else this.players(); break;
       case 'players': f.players = +d.v; this.classes(); break;
       case 'class': f.cls = +d.v; f.chars = []; this.chars(); break;
@@ -100,6 +102,7 @@ export class Menu {
       <div class="menu-col">
         <button class="btn big focusable" data-act="mode" data-v="gp" autofocus>🏆 Grand Prix</button>
         <button class="btn big focusable" data-act="mode" data-v="single">🏁 Einzelrennen</button>
+        <button class="btn big focusable" data-act="mode" data-v="vs">⚔️ Versus</button>
         <button class="btn big focusable" data-act="mode" data-v="tt">⏱️ Zeitfahren</button>
         <div class="row">
           <button class="btn focusable" data-act="options">⚙️ Optionen</button>
@@ -113,9 +116,9 @@ export class Menu {
     const pads = this.app.input.pads().length;
     this.show(`<h2>Wie viele Spieler?</h2>
       <div class="grid4">
-        ${[1, 2, 3, 4].map((n) => `<button class="card focusable" data-act="players" data-v="${n}" ${n === 1 ? 'autofocus' : ''}>
+        ${(this.flow.mode === 'vs' ? [2, 3, 4] : [1, 2, 3, 4]).map((n, ni) => `<button class="card focusable" data-act="players" data-v="${n}" ${ni === 0 ? 'autofocus' : ''}>
           <div class="big-ico">${'🐾'.repeat(n)}</div><b>${n} Spieler</b>
-          <small>${n === 1 ? 'Gegen 7 Computer-Tiere' : n === 2 ? 'Tastatur geteilt oder Gamepads' : 'Braucht Gamepads'}</small></button>`).join('')}
+          <small>${n === 1 ? 'Gegen 7 Computer-Tiere' : n === 2 ? 'Tastatur geteilt oder Gamepads' : 'Braucht Gamepads'}${this.flow.mode === 'vs' ? ' · ohne Computer' : ''}</small></button>`).join('')}
       </div>
       <p class="hint">${pads ? `🎮 ${pads} Gamepad${pads > 1 ? 's' : ''} erkannt` : 'Tipp: Gamepads werden erkannt, sobald du eine Taste drückst.'}</p>
       <button class="btn back focusable" data-act="back">← Zurück</button>`, { back: () => this.title() });
@@ -124,9 +127,13 @@ export class Menu {
   classes() {
     const back = this.flow.mode === 'tt' ? () => this.title() : () => this.players();
     this.show(`<h2>Wie schnell?</h2>
-      <div class="grid3">
-        ${CLASSES.map((c, i) => `<button class="card focusable" data-act="class" data-v="${i}" ${i === 1 ? 'autofocus' : ''}>
-          <div class="big-ico">${c.icon}</div><b>${c.name}</b><small>${['Für Einsteiger und Kinder', 'Der normale Spass', 'Für Profis'][i]}</small></button>`).join('')}
+      <div class="grid4">
+        ${CLASSES.map((c, i) => {
+          const locked = c.mirror && !mirrorUnlocked(this.app.progress);
+          return `<button class="card focusable" data-act="class" data-v="${i}" ${i === 1 ? 'autofocus' : ''} ${locked ? 'disabled' : ''}>
+          <div class="big-ico">${locked ? '🔒' : c.icon}</div><b>${c.name}</b>
+          <small>${locked ? 'Gold in allen Cups (Flott oder Turbo) schaltet frei' : ['Für Einsteiger und Kinder', 'Der normale Spass', 'Für Profis', 'Alle Strecken gespiegelt'][i]}</small></button>`;
+        }).join('')}
       </div>
       <button class="btn back focusable" data-act="back">← Zurück</button>`, { back });
   }
@@ -179,6 +186,7 @@ export class Menu {
       <div class="grid2">
         ${CUPS.map((c, i) => `<button class="card cup focusable" data-act="cup" data-v="${i}" ${i === 0 ? 'autofocus' : ''}>
           <div class="big-ico">${c.icon}</div><b>${esc(c.name)}</b>
+          <div class="trophies">${CLASSES.map((k, ci) => `<span title="${k.name}">${k.icon}${TROPHY_ICON[trophy(this.app.progress, ci, i)] || '<i>–</i>'}</span>`).join('')}</div>
           <div class="cuptracks">${TRACKS.filter((t) => t.cup === i).map((t) => `<span><img src="${this.thumb(t)}">${esc(t.name)}</span>`).join('')}</div>
         </button>`).join('')}
       </div>
@@ -189,7 +197,10 @@ export class Menu {
     this.app.showroom.setMode('title');
     const f = this.flow;
     const rec = (t) => {
-      try { const g = JSON.parse(localStorage.getItem('pgp_ghost_' + t.id) || 'null'); return g ? fmtTime(g.time) : ''; } catch (e) { return ''; }
+      try {
+        const g = JSON.parse(localStorage.getItem('pgp_ghost_' + t.id) || 'null');
+        return g ? fmtTime(g.time) + ' ' + TROPHY_ICON[medalFor(g.time, sampleCenterline(t.shape).length)] : '';
+      } catch (e) { return ''; }
     };
     this.show(`<h2>Wähle eine Strecke</h2>
       ${CUPS.map((c, ci) => `<h4>${c.icon} ${esc(c.name)}</h4><div class="grid4 tracks">
@@ -247,7 +258,10 @@ export class Menu {
         <p>💨 <b>Drift-Boost:</b> Sprungtaste halten und in die Kurve lenken. Funken werden <span style="color:#4FC3FF">blau</span> → <span style="color:#FF9A2B">orange</span> → <span style="color:#C77DFF">lila</span>. Loslassen gibt Turbo!</p>
         <p>🚀 <b>Super-Start:</b> Beim Countdown ab der „2“ Gas geben.</p>
         <p>🤸 <b>Trick:</b> Nach einer Rampe in der Luft die Sprungtaste drücken.</p>
-        <p>🎁 <b>Items:</b> 🌰 Eichel · 🍯 Honig · 🧶 Wollknäuel (verfolgt) · 🫧 Schild · 🥕 Turbo · 🌧️ Wolke (weitergeben!) · 💤 Gähn-Welle</p>
+        <p>🎁 <b>Items:</b> 🌰 Eichel · 🍯 Honig · 🎁 falsche Box · 🌰🌰🌰 kreisende Eicheln · 🧶 Wollknäuel (verfolgt) · 🐝 Bienen (jagen den Ersten) · 🫧 Schild · 🥕 Turbo · ✨ Goldkarotte (7 s Dauer-Turbo) · 🍭 Lolli (unbesiegbar) · 🌧️ Wolke (weitergeben!) · 💤 Gähn-Welle</p>
+        <p>🛡️ <b>Festhalten:</b> Item-Taste gedrückt halten – Eichel, Honig und falsche Box schützen dich dann von hinten. Loslassen wirft bzw. legt ab.</p>
+        <p>💨 <b>Windschatten:</b> Dicht hinter einem Gegner bleiben gibt einen Turbo.</p>
+        <p>🏆 <b>Grand Prix:</b> Platz 4 oder besser zum Weiterkommen. Gold in allen Cups schaltet den Spiegel-Modus frei.</p>
       </div>
       <button class="btn back focusable" data-act="back" autofocus>← Zurück</button>`, { back: () => this.title() });
   }
@@ -266,7 +280,7 @@ export class Menu {
     const rows = res.list.map((r) => `
       <tr class="${r.human !== null ? 'me' : ''}">
         <td class="pl">${r.place}.</td><td><img src="${portrait(r.char.id)}"></td>
-        <td>${esc(r.char.name)}${r.human !== null && this.app.lastPlayers > 1 ? ` <span class="badge">S${r.human + 1}</span>` : ''}</td>
+        <td>${esc(r.char.name)}${r.human !== null && this.app.lastPlayers > 1 ? ` <span class="badge">S${r.human + 1}</span>` : ''}${r.k.rival ? ' <span class="badge rival">Rivale</span>' : ''}</td>
         <td>${r.est ? '–' : fmtTime(r.time)}</td>
         ${gp ? `<td class="pts">+${POINTS[r.place - 1] || 0}</td>` : ''}
       </tr>`).join('');
@@ -275,8 +289,21 @@ export class Menu {
       const me = res.list[0];
       extra = `<div class="laps">${me.laps.map((t, i) => `<span>Runde ${i + 1}: <b>${fmtTime(t)}</b></span>`).join('')}</div>
         ${res.newRecord ? '<div class="record">🎉 Neuer Rekord! Dein Geist fährt beim nächsten Mal mit.</div>' : `<div class="hint">Rekord: ${fmtTime(res.best)}</div>`}`;
+      const len = sampleCenterline(res.track.shape).length, mt = medalTimes(len), got = medalFor(me.time, len);
+      extra += `<div class="medals">${['gold', 'silver', 'bronze'].map((m, i) => `<span class="${got === i + 1 ? 'got' : ''}">${TROPHY_ICON[i + 1]} ${fmtTime(mt[m])}</span>`).join('')}</div>
+        ${got ? `<div class="record">${TROPHY_ICON[got]} ${['Gold', 'Silber', 'Bronze'][got - 1]}-Medaille!</div>` : '<div class="hint">Unter der Bronze-Zeit gibt es eine Medaille.</div>'}`;
     }
-    const buttons = gp
+    if (res.mode === 'vs') {
+      const wins = this.app.vsWins;
+      extra = `<div class="medals">${res.list.map((r) => `<span>S${r.human + 1} ${esc(r.char.name)}: <b>${wins[r.human] || 0}</b> Siege</span>`).join('')}</div>`;
+    }
+    if (res.failed) {
+      extra += '<div class="record fail">😿 Nicht qualifiziert – du musst mindestens Platz 4 schaffen.</div>';
+    }
+    const buttons = gp && res.failed
+      ? `<button class="btn big focusable" data-act="again" autofocus>↻ Nochmal versuchen</button>
+         <button class="btn focusable" data-act="quit">Aufgeben</button>`
+      : gp
       ? `<button class="btn big focusable" data-act="gpnext" autofocus>Weiter ▶</button>`
       : `<button class="btn big focusable" data-act="again" autofocus>↻ Nochmal</button>
          <button class="btn focusable" data-act="tracks">Andere Strecke</button>
@@ -314,8 +341,13 @@ export class Menu {
     app.audio.finish(true);
     const winner = CHARACTERS.find((c) => c.id === list[0]);
     const myBest = Math.min(...gp.players.map((p) => list.indexOf(p.char) + 1));
+    const wasMirror = mirrorUnlocked(app.progress);
+    const isNew = award(app.progress, gp.cls, gp.cup, myBest);
+    const unlocked = !wasMirror && mirrorUnlocked(app.progress);
     this.show(`<div class="podium-text"><h2>🏆 ${esc(winner.name)} gewinnt den ${esc(CUPS[gp.cup].name)}!</h2>
       <p>${myBest === 1 ? 'Wahnsinn – der Pokal gehört dir! 🎉' : myBest <= 3 ? `Super – Platz ${myBest} auf dem Podest!` : `Du bist ${myBest}. geworden. Beim nächsten Mal klappt's!`}</p>
+      ${isNew ? `<p class="newtrophy">${TROPHY_ICON[myBest]} Neuer Pokal für ${esc(CLASSES[gp.cls].name)}!</p>` : ''}
+      ${unlocked ? '<p class="newtrophy">🪞 Spiegel-Modus freigeschaltet!</p>' : ''}
       <button class="btn big focusable" data-act="title" autofocus>Hauptmenü</button></div>`, { cls: 'podium', back: null });
     app.gp = null;
   }

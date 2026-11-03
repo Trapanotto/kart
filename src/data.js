@@ -24,33 +24,43 @@ export const CLASSES = [
   { id: 'easy', name: 'Gemütlich', icon: '🐌', speed: 0.82, ai: 0.9 },
   { id: 'normal', name: 'Flott', icon: '🐇', speed: 1.0, ai: 0.97 },
   { id: 'hard', name: 'Turbo', icon: '🐆', speed: 1.16, ai: 1.02 },
+  { id: 'mirror', name: 'Spiegel', icon: '🪞', speed: 1.16, ai: 1.03, mirror: true },
 ];
 
 export const ITEMS = {
-  acorn:   { icon: '🌰', name: 'Eichel-Wurf' },
-  honey:   { icon: '🍯', name: 'Honigpfütze' },
-  yarn:    { icon: '🧶', name: 'Wollknäuel' },
-  bubble:  { icon: '🫧', name: 'Seifenblasen-Schild' },
-  carrot:  { icon: '🥕', name: 'Karotten-Turbo' },
-  carrot3: { icon: '🥕', name: '3× Karotten-Turbo', count: 3 },
-  cloud:   { icon: '🌧️', name: 'Gewitterwölkchen' },
-  yawn:    { icon: '💤', name: 'Gähn-Welle' },
+  acorn:      { icon: '🌰', name: 'Eichel-Wurf', hold: true },
+  acorn3:     { icon: '🌰', name: '3 kreisende Eicheln', count: 3 },
+  honey:      { icon: '🍯', name: 'Honigpfütze', hold: true },
+  fakebox:    { icon: '🎁', name: 'Falsche Geschenkbox', hold: true },
+  yarn:       { icon: '🧶', name: 'Wollknäuel' },
+  bees:       { icon: '🐝', name: 'Bienenschwarm' },
+  bubble:     { icon: '🫧', name: 'Seifenblasen-Schild' },
+  carrot:     { icon: '🥕', name: 'Karotten-Turbo' },
+  carrot3:    { icon: '🥕', name: '3× Karotten-Turbo', count: 3 },
+  goldcarrot: { icon: '✨', name: 'Goldene Karotte' },
+  lolly:      { icon: '🍭', name: 'Regenbogen-Lolli' },
+  cloud:      { icon: '🌧️', name: 'Gewitterwölkchen' },
+  yawn:       { icon: '💤', name: 'Gähn-Welle' },
 };
 
 // r = 0 (Führung) .. 1 (letzter Platz)
 export function itemWeights(r) {
   return {
-    acorn: 28 * (1 - r) + 8,
-    honey: 22 * (1 - r) + 4,
-    yarn: 4 + 22 * r,
-    bubble: 12,
-    carrot: 8 + 22 * r,
-    carrot3: r > 0.3 ? 4 + 22 * r : 0,
-    cloud: r < 0.35 ? 9 : 0,
-    yawn: r > 0.6 ? 10 * r : 0,
+    acorn: 26 * (1 - r) + 6,
+    honey: 20 * (1 - r) + 3,
+    fakebox: 10 * (1 - r),
+    acorn3: r > 0.15 && r < 0.8 ? 12 : 0,
+    yarn: r > 0.1 ? 4 + 18 * r : 0,
+    bees: r > 0.5 ? 7 * r : 0,
+    bubble: 10,
+    carrot: 8 + 18 * r,
+    carrot3: r > 0.3 ? 4 + 18 * r : 0,
+    goldcarrot: r > 0.45 ? 10 * r : 0,
+    lolly: r > 0.6 ? 9 * r : 0,
+    cloud: r < 0.35 ? 8 : 0,
+    yawn: r > 0.6 ? 7 * r : 0,
   };
 }
-
 export const POINTS = [15, 12, 10, 8, 6, 4, 2, 1];
 
 // Strecken -----------------------------------------------------------------

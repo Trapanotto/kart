@@ -252,6 +252,7 @@ export class Audio {
     this.tone(1400, 0.25, { type: 'sine', vol: 0.1 * v, slide: 1.6, delay: 0.1 });
     this.voice(k, 'hit');
   }
+  bees() { for (let n = 0; n < 6; n++) this.tone(180 + Math.random() * 40, 0.25, { type: 'sawtooth', vol: 0.05, delay: n * 0.05, slide: 1.05 }); }
   boing(k) { const v = this.near(k); if (v) { this.tone(220, 0.35, { type: 'sine', vol: 0.3 * v, slide: 2.6 }); this.tone(330, 0.25, { type: 'triangle', vol: 0.12 * v, slide: 2.2, delay: 0.03 }); } }
   pop(k) { const v = this.near(k); if (v) { this.tone(1200, 0.08, { type: 'sine', vol: 0.25 * v, slide: 0.4 }); this.noise(0.1, { vol: 0.2 * v, freq: 3000 }); } }
   splat(k) { const v = this.near(k); if (v) { this.noise(0.3, { vol: 0.3 * v, freq: 500, slide: 0.4, type: 'lowpass' }); } }

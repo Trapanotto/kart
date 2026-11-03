@@ -23,12 +23,14 @@ Ein flauschiges Kart-Rennspiel mit süssen Tieren, das direkt im Browser läuft.
 
 ## Inhalt
 
-- **Modi:** Grand Prix (2 Cups mit je 4 Rennen und Punktewertung), Einzelrennen, Zeitfahren mit Geist
+- **Modi:** Grand Prix (2 Cups mit je 4 Rennen, Punktewertung, Qualifikation ab Platz 4, Pokale), Einzelrennen, Versus (2–4 Spieler ohne Computer, Siegzählung), Zeitfahren mit Geist und Gold-/Silber-/Bronze-Zeiten
+- **Freischaltbar:** Spiegel-Modus (Gold in allen Cups in Flott oder Turbo)
 - **Splitscreen** für bis zu 4 Spieler (Tastatur + Gamepads)
 - **8 Strecken:** Kleeblatt-Wiese, Bambuswald-Tempel, Pilzhöhlen, Honigfabrik, Gletscher-Gipfel (Eis), Korallenriff (Unterwasser), Wolkenschloss (Brücke), Dschungel-Vulkan
 - **Fahren:** Drift mit 3 Boost-Stufen, Super-Start, Tricks nach Rampen, Boost-Felder
 - **Strecken:** Brücken und Kreuzungen auf mehreren Ebenen, Steilkurven, Halfpipes, Loopings, Weggabelungen, grosse Schanzen über Abgründe, Gleiter-Abschnitte, einstürzende Brücken, rollende Fässer und Felsen, Unterwasser-Abschnitt
-- **Items:** 🌰 Eichel-Wurf · 🍯 Honigpfütze · 🧶 Wollknäuel · 🫧 Seifenblasen-Schild · 🥕 Karotten-Turbo (1× / 3×) · 🌧️ Gewitterwölkchen · 💤 Gähn-Welle
+- **Items:** 🌰 Eichel-Wurf · 🌰🌰🌰 kreisende Eicheln · 🍯 Honigpfütze · 🎁 falsche Geschenkbox · 🧶 Wollknäuel · 🐝 Bienenschwarm · 🫧 Seifenblasen-Schild · 🥕 Karotten-Turbo (1× / 3×) · ✨ Goldene Karotte · 🍭 Regenbogen-Lolli · 🌧️ Gewitterwölkchen · 💤 Gähn-Welle – Eichel, Honig und Box lassen sich hinten festhalten
+- **Fahrtaktik:** Windschatten-Turbo, ein Rivale unter den Computer-Gegnern, Tacho
 - 3 Geschwindigkeitsklassen, Computer-Gegner, selbst erzeugte Musik und Soundeffekte, Touch-Steuerung für Handys
 
 ## Steuerung

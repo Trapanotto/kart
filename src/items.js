@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { ITEMS, itemWeights } from './data.js';
 
-const _v = new THREE.Vector3();
+const _v = new THREE.Vector3(), _v2 = new THREE.Vector3();
 
 function emojiTexture(emoji, size = 128) {
   const c = document.createElement('canvas');
@@ -29,6 +29,12 @@ function makeAcorn() {
   g.add(nut, cap, stem);
   g.traverse((o) => { o.castShadow = true; });
   return g;
+}
+function makeHoneyBlob() {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 12), new THREE.MeshStandardMaterial({ color: '#F2A93B', roughness: 0.1 }));
+  m.scale.set(1, 0.7, 1);
+  m.castShadow = true;
+  return m;
 }
 function makeYarn() {
   const g = new THREE.Group();
@@ -83,6 +89,7 @@ export class ItemManager {
     this.pawMat = new THREE.SpriteMaterial({ map: emojiTexture('🐾'), depthWrite: false });
     this.bubbleMat = new THREE.MeshPhysicalMaterial({ color: '#BFF2FF', roughness: 0.05, transparent: true, opacity: 0.3, iridescence: 1, depthWrite: false });
     this.zzzMat = new THREE.SpriteMaterial({ map: emojiTexture('💤'), depthWrite: false });
+    this.beeMat = new THREE.SpriteMaterial({ map: emojiTexture('🐝'), depthWrite: false });
     if (race.mode !== 'tt') this.buildBoxes();
     this.buildPads();
     this.buildPuddles();
@@ -247,10 +254,26 @@ export class ItemManager {
         const di = Math.abs(k.loc.i - p.i);
         if ((di < 3 || di > race.track.N - 3) && Math.abs(k.loc.lat - p.lat) < 2.6) { k.boost(1.0, 1); break; }
       }
-      // Item benutzen
+      // Item benutzen – manche Items kann man hinter dem Kart festhalten (Schutz von hinten)
       const press = k.input.item && !k.prevItem;
       k.prevItem = k.input.item;
-      if (press && k.item && race.state === 'race' && k.stun <= 0 && !k.finished) this.use(k);
+      const canUse = race.state === 'race' && k.stun <= 0 && !k.finished;
+      if (k.held && (!k.input.item || !canUse)) this.releaseHeld(k, !canUse);
+      else if (press && k.item && canUse && !k.held) {
+        if (ITEMS[k.item].hold) this.startHold(k);
+        else this.use(k);
+      }
+      if (k.goldT > 0) {
+        k.goldT -= dt;
+        if (k.goldT <= 0 && k.item === 'goldcarrot') k.item = null;
+      }
+      if (k.lolly > 0 && race.fxOn) {
+        const col = ['#FF5E7E', '#FFD447', '#7EE081', '#5FC8FF', '#B59CFF'][Math.floor(race.time * 12) % 5];
+        for (let n = 0; n < 2; n++) {
+          _v.copy(k.pos).add(_v2.set((Math.random() - 0.5) * 2.4, 0.5 + Math.random() * 2, (Math.random() - 0.5) * 2.4));
+          race.fx.glow.emit(_v, _v2.set(0, 1.5, 0), col, 0.45, 0.5);
+        }
+      }
       // Schild / Wolke Darstellung
       this.decorate(k);
     }
@@ -270,10 +293,27 @@ export class ItemManager {
   }
 
   use(k) {
-    const race = this.race;
     const id = k.item;
+    if (id === 'acorn3' && !k.orbits) { this.startOrbit(k); return; }
+    if (id === 'goldcarrot') {
+      if (!(k.goldT > 0)) k.goldT = 7;
+      this.fire(k, 'carrot');
+      return;
+    }
     k.itemCount--;
     if (k.itemCount <= 0) k.item = null;
+    if (id === 'acorn3') {
+      const o = k.orbits.pop();
+      if (o) o.life = 0;
+      if (!k.orbits.length) k.orbits = null;
+      this.fire(k, 'acorn');
+      return;
+    }
+    this.fire(k, id);
+  }
+
+  fire(k, id) {
+    const race = this.race;
     const f = k.forward.clone();
     const back = k.input.back;
     switch (id) {
@@ -310,6 +350,37 @@ export class ItemManager {
         race.audio.throw(k);
         break;
       }
+      case 'fakebox': {
+        const pos = k.pos.clone().addScaledVector(f, -3.2);
+        race.track.locate(pos, k.trackIdx, _locTmp);
+        pos.y = _locTmp.y + 1.4;
+        const mesh = this.makeFake();
+        mesh.position.copy(pos);
+        this.group.add(mesh);
+        this.ents.push({ type: 'fake', pos, mesh, life: 60, owner: k });
+        race.audio.drop(k);
+        break;
+      }
+      case 'bees': {
+        const target = race.ranked.find((o) => o !== k && !o.finished) || null;
+        if (!target) break;
+        const pos = k.pos.clone();
+        pos.y += 3;
+        const mesh = new THREE.Group();
+        for (let n = 0; n < 6; n++) { const s = new THREE.Sprite(this.beeMat); s.scale.setScalar(0.9); mesh.add(s); }
+        mesh.position.copy(pos);
+        this.group.add(mesh);
+        this.ents.push({ type: 'bees', pos, mesh, life: 25, owner: k, target, idx: k.trackIdx + 2, lat: k.loc.lat, speed: 75 });
+        if (target.human !== null) race.hud.message(target.human, '🐝 Bienen im Anflug!', 2);
+        race.audio.bees();
+        break;
+      }
+      case 'lolly':
+        k.lolly = 8;
+        k.boost(1.0, 3);
+        if (k.human !== null) race.hud.message(k.human, '🍭 Unbesiegbar!');
+        race.audio.shield(k);
+        break;
       case 'bubble':
         k.shield = 14;
         race.audio.shield(k);
@@ -339,6 +410,138 @@ export class ItemManager {
     }
   }
 
+  // --- Festhalten hinter dem Kart
+  startHold(k) {
+    const id = k.item;
+    k.itemCount--;
+    if (k.itemCount <= 0) k.item = null;
+    const mesh = id === 'acorn' ? makeAcorn() : id === 'honey' ? makeHoneyBlob() : this.makeFake(0.7);
+    this.group.add(mesh);
+    const e = { type: 'held', item: id, owner: k, mesh, pos: new THREE.Vector3(), life: Infinity };
+    this.ents.push(e);
+    k.held = e;
+    this.heldUpdate(e);
+  }
+  heldUpdate(e) {
+    const k = e.owner;
+    if (k.held !== e) return false;
+    const f = k.forward;
+    e.pos.copy(k.pos).addScaledVector(f, -2.6);
+    e.pos.y += e.item === 'acorn' ? 0.8 : 0.6;
+    e.mesh.position.copy(e.pos);
+    e.mesh.rotation.y += 0.04;
+    for (const o of this.race.karts) {
+      if (o === k || Math.abs(o.pos.y - e.pos.y) > 2.5) continue;
+      if (o.pos.distanceToSquared(e.pos) < 3.2) { this.applyTrap(o, e.item); k.held = null; return false; }
+    }
+  }
+  releaseHeld(k, lost) {
+    const e = k.held;
+    k.held = null;
+    if (!e) return;
+    e.life = 0;
+    if (!lost) this.fire(k, e.item);
+  }
+  applyTrap(o, item) {
+    if (item === 'honey') {
+      if (o.shield > 0 || o.lolly > 0) { o.shield = 0; return; }
+      o.honey = 1.4; o.speed *= 0.6; o.drift.on = false;
+      this.race.audio.splat(o);
+    } else o.hit();
+  }
+  makeFake(scale = 1) {
+    if (!this.fakeMat) {
+      this.fakeMat = this.boxMat.clone();
+      this.fakeMat.color.set('#FFD0D0');
+      this.fakeMat.emissive.set('#FF2255');
+    }
+    const m = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 1.4), this.fakeMat);
+    const paw = new THREE.Sprite(this.pawMat);
+    paw.scale.set(0.9, -0.9, 1); // Pfote steht Kopf – kleiner Hinweis
+    m.add(paw);
+    m.scale.setScalar(scale);
+    m.castShadow = true;
+    return m;
+  }
+  fakeUpdate(e) {
+    e.mesh.rotation.set(this.race.time * 0.8, this.race.time * 1.1, 0);
+    for (const o of this.race.karts) {
+      if (o === e.owner && e.age < 0.8) continue;
+      if (Math.abs(o.pos.y - e.pos.y) > 3) continue;
+      if (o.pos.distanceToSquared(e.pos) < 4.4) { o.hit(); this.race.burst(e.pos, '#FF5E7E', 14, true); return false; }
+    }
+  }
+
+  // --- Kreisende Eicheln
+  startOrbit(k) {
+    k.orbits = [];
+    for (let n = 0; n < k.itemCount; n++) {
+      const mesh = makeAcorn();
+      this.group.add(mesh);
+      const e = { type: 'orbit', owner: k, mesh, pos: new THREE.Vector3(), life: Infinity, a: (n / k.itemCount) * Math.PI * 2 };
+      this.ents.push(e);
+      k.orbits.push(e);
+    }
+    this.race.audio.shield(k);
+  }
+  orbitUpdate(e, dt) {
+    const k = e.owner;
+    if (!k.orbits || !k.orbits.includes(e)) return false;
+    e.a += dt * 5;
+    e.pos.set(k.pos.x + Math.cos(e.a) * 2.4, k.pos.y + 0.9, k.pos.z + Math.sin(e.a) * 2.4);
+    e.mesh.position.copy(e.pos);
+    e.mesh.rotation.x += dt * 10;
+    for (const o of this.race.karts) {
+      if (o === k || Math.abs(o.pos.y - e.pos.y) > 2.5) continue;
+      if (o.pos.distanceToSquared(e.pos) < 2.6) { o.hit(); this.destroy(e); return false; }
+    }
+  }
+
+  // Objekt zerstören und Besitzer aufräumen
+  destroy(o) {
+    o.life = 0;
+    if (o.type === 'held' && o.owner.held === o) o.owner.held = null;
+    if (o.type === 'orbit' && o.owner.orbits) {
+      const k = o.owner;
+      k.orbits = k.orbits.filter((x) => x !== o);
+      k.itemCount--;
+      if (!k.orbits.length) { k.orbits = null; if (k.item === 'acorn3') k.item = null; }
+    }
+  }
+
+  // Kart wurde getroffen: festgehaltene und kreisende Items gehen verloren
+  onHit(k) {
+    if (k.held) { k.held.life = 0; k.held = null; }
+    if (k.orbits) { for (const o of k.orbits) o.life = 0; k.orbits = null; if (k.item === 'acorn3') k.item = null; }
+  }
+
+  // --- Bienenschwarm jagt den Führenden
+  beesUpdate(e, dt) {
+    const tr = this.race.track, tgt = e.target;
+    if (!tgt || tgt.finished) return false;
+    let gap = tgt.trackIdx - e.idx;
+    if (gap < -tr.N / 2) gap += tr.N;
+    if (gap > tr.N / 2) gap -= tr.N;
+    if (gap > 14) {
+      e.idx = (e.idx + (e.speed * dt) / 2) % tr.N;
+      e.lat += (tgt.loc.lat - e.lat) * Math.min(1, dt * 2);
+      tr.pointAt(e.idx, e.lat, e.pos);
+      e.pos.y += 3.5 + tr.bump[Math.floor(e.idx) % tr.N];
+    } else {
+      _v.copy(tgt.pos).add(_v2.set(0, 2.2, 0)).sub(e.pos);
+      const d = _v.length();
+      e.pos.addScaledVector(_v.normalize(), Math.min(d, e.speed * dt));
+      if (d < 2.5) {
+        for (const o of this.race.karts) if (o !== e.owner && o.pos.distanceTo(tgt.pos) < 7) o.hit(1.3);
+        this.race.burst(tgt.pos, '#FFD447', 26, true);
+        this.race.audio.zap(tgt);
+        return false;
+      }
+    }
+    e.mesh.position.copy(e.pos);
+    e.mesh.children.forEach((s, n) => s.position.set(Math.sin(this.race.time * 9 + n * 1.7) * 1.1, Math.cos(this.race.time * 7 + n) * 0.6, Math.cos(this.race.time * 8 + n * 2.3) * 1.1));
+  }
+
   ringUpdate(e, dt) {
     const s = 1 + (1.2 - e.life) * 60;
     e.mesh.scale.setScalar(s);
@@ -358,10 +561,11 @@ export class ItemManager {
   projectileClash(e) {
     for (let j = 0; j < this.ents.length; j++) {
       const o = this.ents[j];
-      if (o === e || o.permanent || !['acorn', 'yarn', 'honey'].includes(o.type)) continue;
+      if (o === e || o.permanent || !['acorn', 'yarn', 'honey', 'held', 'orbit', 'fake'].includes(o.type)) continue;
+      if (o.owner && o.owner === e.owner && (e.age || 0) < 0.5) continue;
       if (o.pos.distanceToSquared(e.pos) < 3.5) {
         this.race.burst(o.pos, '#FFFFFF', 10);
-        o.life = 0;
+        this.destroy(o);
         return true;
       }
     }
@@ -395,7 +599,7 @@ export class ItemManager {
 
   honeyUpdate(e) {
     const k = this.hitTest(e, e.r);
-    if (k && k.honey <= 0.3) {
+    if (k && k.honey <= 0.3 && !(k.lolly > 0)) {
       if (k.shield > 0) { k.shield = 0; this.race.audio.pop(k); if (!e.permanent) return false; return; }
       k.honey = 1.4;
       k.speed *= 0.6;
