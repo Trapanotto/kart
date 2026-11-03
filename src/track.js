@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { sampleCenterline, ROAD_HALF, OFFROAD, SPACING } from './data.js';
 import { instanceProps, propClone, landmarkClone } from './assets.js';
+import { prepareFeatures, Features } from './features.js';
 
 export const FENCE = ROAD_HALF + OFFROAD;
 const RAMP_LEN = 6;      // Stützpunkte (x SPACING = 12 Einheiten)
@@ -46,6 +47,17 @@ export class Track {
     this.length = length;
     const N = (this.N = points.length);
     this.P = points.map((p) => new THREE.Vector3(p[0], p[1], p[2]));
+    // Unterwasser-Senken: Strecke taucht in einen See
+    this.water = [];
+    for (const [a, b, depth] of def.underwater || []) {
+      const ia = Math.round(a * N), len = (Math.round(b * N) - ia + N) % N;
+      const edgeY = Math.min(this.P[ia % N].y, this.P[(ia + len) % N].y);
+      for (let k = 0; k <= len; k++) {
+        const e = Math.sin((k / len) * Math.PI) ** 2;
+        this.P[(ia + k) % N].y -= depth * Math.min(1, e * 1.6);
+      }
+      this.water.push({ ia, len, level: edgeY - 0.6 });
+    }
     this.T = [];
     this.R = [];
     for (let i = 0; i < N; i++) {
@@ -71,19 +83,54 @@ export class Track {
       }
     }
     this.fence = this.hw.map((h) => h + OFFROAD);
-    // Lücken: nach einer Rampe fehlt die Fahrbahn
+    // Sprünge: normale Rampen, Lücken, grosse Schanzen, Gleiter-Schanzen
+    this.jumps = [];
+    for (const f of def.ramps || []) this.jumps.push({ f, len: 0, h: RAMP_H, kind: 1 });
+    for (const f of def.gaps || []) this.jumps.push({ f, len: GAP_LEN, h: RAMP_H, kind: 1 });
+    for (const f of def.bigjumps || []) this.jumps.push({ f, len: 15, h: 3.2, kind: 2 });
+    for (const [f, len] of def.glides || []) this.jumps.push({ f, len, h: 2.6, kind: 3 });
     this.gap = new Uint8Array(N);
-    for (const f of def.gaps || []) {
-      const c = Math.round(f * N);
-      for (let k = 2; k <= GAP_LEN + 1; k++) this.gap[(c + k) % N] = 1;
-    }
     this.bump = new Float32Array(N);
     this.launch = new Uint8Array(N);
-    for (const f of [...(def.ramps || []), ...(def.gaps || [])]) {
-      const c = Math.round(f * N);
-      for (let k = 0; k < RAMP_LEN; k++) this.bump[(c - RAMP_LEN + 1 + k + N) % N] = RAMP_H * ((k + 1) / RAMP_LEN);
-      this.launch[c % N] = 1;
-      this.launch[(c + 1) % N] = 1;
+    for (const j of this.jumps) {
+      const c = (j.c = Math.round(j.f * N) % N);
+      const rl = j.kind === 1 ? RAMP_LEN : 9;
+      for (let k = 0; k < rl; k++) this.bump[(c - rl + 1 + k + N) % N] = j.h * ((k + 1) / rl);
+      this.launch[c] = j.kind;
+      this.launch[(c + 1) % N] = j.kind;
+      for (let k = 2; k <= j.len + 1; k++) this.gap[(c + k) % N] = 1;
+    }
+    // Steilkurven: Neigung aus der Kurvenkrümmung (Aussenseite höher)
+    this.bank = new Float32Array(N);
+    const bankAll = def.banking || 0;
+    for (let i = 0; i < N; i++) {
+      const a = this.T[(i - 6 + N) % N], b = this.T[(i + 6) % N];
+      const curve = Math.atan2(a.x * b.z - a.z * b.x, a.x * b.x + a.z * b.z);
+      this.bank[i] = Math.max(-0.42, Math.min(0.42, curve * 1.1)) * bankAll;
+    }
+    for (let pass = 0; pass < 3; pass++) {
+      const s = Float32Array.from(this.bank);
+      for (let i = 0; i < N; i++) this.bank[i] = (s[(i - 2 + N) % N] + s[(i - 1 + N) % N] + s[i] + s[(i + 1) % N] + s[(i + 2) % N]) / 5;
+    }
+    // Halfpipes: Wände steigen zu beiden Seiten an
+    this.hp = new Float32Array(N);
+    for (const [a, b, H] of def.halfpipes || []) {
+      const ia = Math.round(a * N), len = (Math.round(b * N) - ia + N) % N;
+      for (let k = 0; k <= len; k++) this.hp[(ia + k) % N] = H * Math.min(1, k / 10, (len - k) / 10);
+    }
+    // Weggabelungen: Insel in der Mitte, Fahrbahn wird breiter
+    this.island = new Float32Array(N);
+    this.forks = [];
+    for (const fk of def.forks || []) {
+      const ia = Math.round(fk.a * N), len = (Math.round(fk.b * N) - ia + N) % N;
+      for (let k = 0; k <= len; k++) {
+        const e = Math.min(1, k / 14, (len - k) / 14);
+        const i = (ia + k) % N;
+        this.island[i] = fk.m * e;
+        this.hw[i] += (fk.m + 1) * Math.min(1, e * 1.5);
+        this.fence[i] = this.hw[i] + OFFROAD;
+      }
+      this.forks.push({ ...fk, ia, len });
     }
     let minY = Infinity;
     for (const p of this.P) minY = Math.min(minY, p.y);
@@ -117,6 +164,8 @@ export class Track {
       }
       for (let i = 0; i < N; i++) if (raw[i]) for (let k = -6; k <= 6; k++) this.bridge[(i + k + N) % N] = 1;
     }
+    prepareFeatures(this, def);
+    this.slope = this.P.map((p, i) => (this.P[(i + 1) % N].y - p.y) / SPACING);
   }
 
   // Abstand zum nächsten anderen Streckenteil (nicht die Nachbarpunkte)
@@ -152,6 +201,29 @@ export class Track {
     return best;
   }
 
+  // Höhe der Fahrbahn quer zur Fahrtrichtung (Steilkurve + Halfpipe)
+  crossOff(i, lat) {
+    let y = -this.bank[i] * lat;
+    const H = this.hp[i];
+    if (H) {
+      const flat = this.hw[i] * 0.35, w = this.fence[i];
+      const t = Math.max(0, (Math.abs(lat) - flat) / (w - flat));
+      y += H * t * t;
+    }
+    return y;
+  }
+  // Steigung quer zur Fahrtrichtung (dy / dlat)
+  crossSlope(i, lat) {
+    let s = -this.bank[i];
+    const H = this.hp[i];
+    if (H) {
+      const flat = this.hw[i] * 0.35, w = this.fence[i];
+      const t = Math.max(0, (Math.abs(lat) - flat) / (w - flat));
+      s += (H * 2 * t / (w - flat)) * Math.sign(lat);
+    }
+    return s;
+  }
+
   // Position eines Karts relativ zur Strecke
   locate(p, hint, out = {}) {
     const N = this.N;
@@ -185,9 +257,9 @@ export class Track {
     const cx = a.x + sx * u, cz = a.z + sz * u, cy = a.y + (b.y - a.y) * u;
     const R = this.R[i];
     const lat = (p.x - cx) * R.x + (p.z - cz) * R.z;
-    let y = cy;
+    let y = cy + this.crossOff(i, lat);
     if (Math.abs(lat) < this.hw[i]) y += this.bump[i] + (this.bump[j] - this.bump[i]) * u;
-    out.gap = this.gap[i] === 1;
+    out.gap = this.gap[i] === 1 || (this.crumbleGap ? this.crumbleGap(i, lat) : false);
     if (out.gap) y = -1e4;
     out.i = i; out.u = u; out.idx = i + u; out.lat = lat; out.y = y; out.roadY = cy;
     out.cx = cx; out.cz = cz;
@@ -199,7 +271,7 @@ export class Track {
     const i = ((Math.floor(idx) % N) + N) % N;
     const u = idx - Math.floor(idx);
     const a = this.P[i], b = this.P[(i + 1) % N], R = this.R[i];
-    out.set(a.x + (b.x - a.x) * u + R.x * lat, a.y + (b.y - a.y) * u, a.z + (b.z - a.z) * u + R.z * lat);
+    out.set(a.x + (b.x - a.x) * u + R.x * lat, a.y + (b.y - a.y) * u + this.crossOff(i, lat), a.z + (b.z - a.z) * u + R.z * lat);
     return out;
   }
 
@@ -232,21 +304,26 @@ export class Track {
 
     // Fahrbahn + Wiese + Bordsteine
     // inner/outer: Abstand zur Mittellinie, als Funktion des Stützpunkts
-    const ribbon = (innerF, outerF, yOff, colorFn, uvScale, withBump) => {
+    const ribbon = (innerF, outerF, yOff, colorFn, uvScale, withBump, cols = 1, skip = null) => {
       const pos = [], uv = [], col = [], idx = [];
+      const W = cols + 1;
       for (let i = 0; i <= N; i++) {
         const k = i % N, p = this.P[k], R = this.R[k];
         const b = withBump ? this.bump[k] : 0;
         const inner = innerF(k), outer = outerF(k);
-        for (const s of [inner, outer]) {
-          pos.push(p.x + R.x * s, p.y + yOff + b, p.z + R.z * s);
-          uv.push((s - inner) / (outer - inner), (i * SPACING) / uvScale);
+        for (let q = 0; q <= cols; q++) {
+          const s = inner + ((outer - inner) * q) / cols;
+          pos.push(p.x + R.x * s, p.y + yOff + b + this.crossOff(k, s), p.z + R.z * s);
+          uv.push(q / cols, (i * SPACING) / uvScale);
           const c = colorFn(k, s);
           col.push(c.r, c.g, c.b);
         }
-        if (i < N && !this.gap[k] && !this.gap[(k + 1) % N]) {
-          const a = i * 2;
-          idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+        const k2 = (k + 1) % N;
+        if (i < N && !this.gap[k] && !this.gap[k2] && !(skip && (skip(k) || skip(k2)))) {
+          for (let q = 0; q < cols; q++) {
+            const a = i * W + q;
+            idx.push(a, a + W, a + 1, a + 1, a + W, a + W + 1);
+          }
         }
       }
       const g = new THREE.BufferGeometry();
@@ -259,14 +336,14 @@ export class Track {
     };
     const white = C('#ffffff'), ice = C(th.ice || '#BFE9FF');
     const road = new THREE.Mesh(
-      ribbon((k) => -this.hw[k], (k) => this.hw[k], 0.02, (k) => (this.grip[k] < 1 ? ice : white), 18, true),
+      ribbon((k) => -this.hw[k], (k) => this.hw[k], 0.02, (k) => (this.grip[k] < 1 ? ice : white), 18, true, 8, (k) => this.crumble && this.crumble[k]),
       new THREE.MeshStandardMaterial({ map: roadTex, vertexColors: true, roughness: 0.85 }));
     road.material.side = THREE.DoubleSide;
     road.receiveShadow = true;
     group.add(road);
     const offMat = new THREE.MeshStandardMaterial({ map: offTex, roughness: 1 });
     for (const s of [-1, 1]) {
-      const g = ribbon((k) => s * (this.hw[k] + 0.6), (k) => s * this.fence[k], 0.0, () => white, 10, false);
+      const g = ribbon((k) => s * (this.hw[k] + 0.6), (k) => s * this.fence[k], 0.0, (k) => (this.hp[k] ? (this.grip[k] < 1 ? ice : white) : white), 10, false, 4, (k) => this.crumble && this.crumble[k]);
       const m = new THREE.Mesh(g, offMat);
       m.material.side = THREE.DoubleSide;
       m.receiveShadow = true;
@@ -274,7 +351,7 @@ export class Track {
       // Bordstein
       const c1 = C(th.curb[0]), c2 = C(th.curb[1]);
       const curb = new THREE.Mesh(
-        ribbon((k) => s * (this.hw[k] - 0.3), (k) => s * (this.hw[k] + 0.8), 0.09, (k) => (Math.floor(k / 2) % 2 ? c1 : c2), 10, false),
+        ribbon((k) => s * (this.hw[k] - 0.3), (k) => s * (this.hw[k] + 0.8), 0.09, (k) => (Math.floor(k / 2) % 2 ? c1 : c2), 10, false, 1, (k) => this.crumble && this.crumble[k]),
         new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, side: THREE.DoubleSide }));
       curb.receiveShadow = true;
       group.add(curb);
@@ -291,7 +368,7 @@ export class Track {
         const c = Math.floor(k / 3) % 2 ? f1 : f2;
         for (const [o, h] of prof) {
           const d = s * (this.fence[k] + 0.35 + o);
-          fencePos.push(p.x + R.x * d, p.y + h, p.z + R.z * d);
+          fencePos.push(p.x + R.x * d, p.y + h + this.crossOff(k, d), p.z + R.z * d);
           fenceCol.push(c.r, c.g, c.b);
         }
         if (i < N && !this.gap[k] && !this.gap[(k + 1) % N]) for (let q = 0; q < prof.length - 1; q++) {
@@ -316,22 +393,26 @@ export class Track {
 
     // Rampen-Vorderseite + Streifen
     const rampMat = new THREE.MeshStandardMaterial({ color: th.curb[1], roughness: 0.5 });
-    for (const f of [...(this.def.ramps || []), ...(this.def.gaps || [])]) {
-      const c = Math.round(f * N) % N;
-      const p = this.P[c], R = this.R[c], T = this.T[c];
+    const glideMat = new THREE.MeshStandardMaterial({ color: '#4FC3FF', roughness: 0.4, emissive: '#1E88FF', emissiveIntensity: 0.4 });
+    const bigMat = new THREE.MeshStandardMaterial({ color: '#FFD447', roughness: 0.4, emissive: '#FF9A2B', emissiveIntensity: 0.25 });
+    for (const j of this.jumps) {
+      const c = j.c;
+      const p = this.P[c], T = this.T[c];
       const ROAD_HALF = this.hw[c];
-      const box = new THREE.Mesh(new THREE.BoxGeometry(ROAD_HALF * 2, RAMP_H, 0.4), rampMat);
-      box.position.set(p.x + T.x * 0.1, p.y + RAMP_H / 2, p.z + T.z * 0.1);
+      const rl = j.kind === 1 ? RAMP_LEN : 9;
+      const mat = j.kind === 3 ? glideMat : j.kind === 2 ? bigMat : rampMat;
+      const box = new THREE.Mesh(new THREE.BoxGeometry(ROAD_HALF * 2, j.h, 0.4), mat);
+      box.position.set(p.x + T.x * 0.1, p.y + j.h / 2, p.z + T.z * 0.1);
       box.rotation.y = Math.atan2(T.x, T.z);
       box.castShadow = true;
       group.add(box);
-      for (let k = 0; k < RAMP_LEN; k += 2) {
+      for (let k = 0; k < rl; k += 2) {
         const q = this.P[(c - k + N) % N];
-        const s = new THREE.Mesh(new THREE.BoxGeometry(ROAD_HALF * 2 - 1, 0.05, 1.2), new THREE.MeshStandardMaterial({ color: '#ffffff' }));
+        const s = new THREE.Mesh(new THREE.BoxGeometry(ROAD_HALF * 2 - 1, 0.05, 1.2), j.kind === 1 ? new THREE.MeshStandardMaterial({ color: '#ffffff' }) : mat);
         s.position.set(q.x, q.y + this.bump[(c - k + N) % N] + 0.06, q.z);
         s.rotation.order = 'YXZ';
         s.rotation.y = Math.atan2(T.x, T.z);
-        s.rotation.x = -Math.atan(RAMP_H / (RAMP_LEN * SPACING));
+        s.rotation.x = -Math.atan(j.h / (rl * SPACING));
         group.add(s);
       }
     }
@@ -341,10 +422,20 @@ export class Track {
     const gapMat = new THREE.MeshStandardMaterial({ color: gapCol, roughness: 0.15, emissive: this.def.theme === 'volcano' ? '#FF4E1A' : '#000000',
       emissiveIntensity: this.def.theme === 'volcano' ? 0.7 : 0 });
     this.gapMeshes = [];
-    for (const f of this.def.gaps || []) {
-      const c = (Math.round(f * N) + 2 + Math.floor(GAP_LEN / 2)) % N;
+    // Abgrund-Textur: dunkel in der Mitte
+    const voidTex = canvasTex(128, 128, (ctx, w, h) => {
+      const g = ctx.createRadialGradient(w / 2, h / 2, 4, w / 2, h / 2, w * 0.7);
+      g.addColorStop(0, '#05030A'); g.addColorStop(0.6, '#1A1226'); g.addColorStop(1, th.ground2);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    }, false);
+    const voidMat = new THREE.MeshStandardMaterial({ map: voidTex, roughness: 1 });
+    for (const j of this.jumps) {
+      if (!j.len) continue;
+      const GAP_LEN = j.len;
+      const c = (j.c + 2 + Math.floor(GAP_LEN / 2)) % N;
       const p = this.P[c];
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(this.fence[c] * 2 + 8, (GAP_LEN + 3) * SPACING), gapMat);
+      const deep = j.kind !== 1 && !['volcano', 'reef', 'clouds'].includes(this.def.theme);
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(this.fence[c] * 2 + 8, (GAP_LEN + 3) * SPACING), deep ? voidMat : gapMat);
       m.rotation.order = 'YXZ';
       m.rotation.y = this.headingAt(c);
       m.rotation.x = -Math.PI / 2;
@@ -365,7 +456,12 @@ export class Track {
     this.buildSky(scene, th);
     this.buildScenery(group, th, settings);
     this.buildDetails(group, th, settings);
+    this.features = new Features(this, group, th, settings);
     return group;
+  }
+
+  update(dt, t) {
+    if (this.features) this.features.update(dt, t);
   }
 
   // Details: Kurvenschilder, Fähnchen, Laternen, Tribüne, Randpflanzen
@@ -547,7 +643,7 @@ export class Track {
         const k = i % N, p = this.P[k], R = this.R[k];
         const h = p.y - this.groundY;
         const d0 = s * this.fence[k], d1 = s * (this.fence[k] + 0.5 + h * 1.1);
-        pos.push(p.x + R.x * d0, p.y, p.z + R.z * d0, p.x + R.x * d1, this.groundY, p.z + R.z * d1);
+        pos.push(p.x + R.x * d0, p.y + this.crossOff(k, d0), p.z + R.z * d0, p.x + R.x * d1, this.groundY, p.z + R.z * d1);
         col.push(g2.r, g2.g, g2.b, g1.r, g1.g, g1.b);
         const k2 = (k + 1) % N;
         if (i < N && !this.gap[k] && !this.gap[k2] && !this.bridge[k] && !this.bridge[k2]) {

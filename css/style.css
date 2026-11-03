@@ -206,3 +206,15 @@ body.racing #touch:not(:empty) { display: block; }
   -webkit-mask-image: radial-gradient(circle at 50% 52%, transparent 38%, #000 80%); mask-image: radial-gradient(circle at 50% 52%, transparent 38%, #000 80%); }
 .h-speed.on { opacity: 0.8; animation: speedlines 0.12s infinite alternate; }
 @keyframes speedlines { from { transform: scale(1) rotate(0deg); } to { transform: scale(1.04) rotate(1.4deg); } }
+
+/* Unter Wasser: Tönung und aufsteigende Blasen */
+.h-water { position: absolute; inset: 0; opacity: 0; transition: opacity 0.3s; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 30%, rgba(40, 160, 220, 0.12), rgba(5, 60, 110, 0.45)); }
+.h-water.on { opacity: 1; }
+.h-water i { position: absolute; bottom: -20px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.7); animation: bubble 3s linear infinite; }
+.h-water i:nth-child(1) { left: 12%; animation-delay: 0s; }
+.h-water i:nth-child(2) { left: 30%; animation-delay: 1.2s; width: 9px; height: 9px; }
+.h-water i:nth-child(3) { left: 55%; animation-delay: 0.6s; }
+.h-water i:nth-child(4) { left: 74%; animation-delay: 2s; width: 10px; height: 10px; }
+.h-water i:nth-child(5) { left: 88%; animation-delay: 1.6s; }
+@keyframes bubble { to { transform: translate(18px, -110vh); } }

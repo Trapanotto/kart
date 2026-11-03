@@ -9,6 +9,7 @@ import { Hazards } from './hazards.js';
 import { Particles, Ambient, Skids } from './effects.js';
 import { Hud } from './hud.js';
 import { createKartModel, FUR } from './assets.js';
+import { underwater } from './features.js';
 
 const _v = new THREE.Vector3(), _w = new THREE.Vector3();
 
@@ -211,6 +212,7 @@ export class Race {
     for (const k of this.karts) {
       const i = k.trackIdx, prev = k.prevIdx;
       if (i > N * 0.35 && i < N * 0.65) k.halfway = true;
+      { const fd = (i - prev + N) % N; if (fd > 3 && fd < N / 2 && ((Math.floor(N / 2) - prev + N) % N) <= fd) k.halfway = true; }
       if (prev > N * 0.8 && i < N * 0.2) {
         if (k.lap === 0 || k.halfway) {
           k.lap++;
@@ -257,6 +259,7 @@ export class Race {
     // Effekte
     for (const s of this.track.spinners || []) s.o.rotation[s.axis] += dt * 0.8;
     this.track.updateFans(this.clock);
+    this.track.update(dt, this.clock);
     this.fx.glow.update(dt);
     this.fx.soft.update(dt);
     if (this.humans[0]) this.ambient.update(dt, this.humans[0].pos);
@@ -291,6 +294,8 @@ export class Race {
     let idx = k.trackIdx;
     for (let s = 0; s < 40 && (this.track.gap[idx] || this.track.launch[idx] || this.track.bump[idx] > 0); s++) idx = (idx - 1 + N) % N;
     idx = (idx - 6 + N) % N;
+    k.rail = null; k.cannon = null; k.glide = false;
+    k.model.root.quaternion.identity();
     k.place(idx, 0, this.track);
     k.vel.set(0, 0, 0);
     k.speed = 0;
@@ -391,6 +396,17 @@ export class Race {
         c.pos.copy(c.cam.position);
         continue;
       }
+      if (k.rail && k.railFwd) {
+        const f = k.railFwd, u = k.railUp;
+        _v.copy(k.pos).addScaledVector(f, -7).addScaledVector(u, 2.6);
+        c.pos.lerp(_v, 1 - Math.exp(-dt * 12));
+        c.cam.position.copy(c.pos);
+        c.cam.up.copy(u);
+        c.cam.lookAt(_w.copy(k.pos).addScaledVector(f, 3).addScaledVector(u, 1.2));
+        c.yaw = k.heading;
+        continue;
+      }
+      c.cam.up.set(0, 1, 0);
       if (k.finished) {
         // Kamera dreht sich vor das Gesicht
         c.yaw += dt * 0.6;
@@ -451,6 +467,12 @@ export class Race {
       const s = (r.h * pr) / (2 * Math.tan((c.cam.fov * Math.PI) / 360));
       this.fx.glow.mat.uniforms.uScale.value = s;
       this.fx.soft.mat.uniforms.uScale.value = s;
+      // Unter Wasser: blauer Nebel
+      const uw = underwater(this.track, c.cam.position);
+      const fog = this.scene.fog, th = this.theme;
+      if (uw) { fog.color.set('#0B4870'); fog.near = 0; fog.far = 48; } else { fog.color.set(th.fog); fog.near = th.fogNear; fog.far = th.fogFar; }
+      (this.camUw ||= [])[i] = !!uw;
+      if (i === 0) this.audio.setUnderwater(!!uw);
       renderer.render(this.scene, c.cam);
     });
     if (this.overview) {

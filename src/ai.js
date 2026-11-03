@@ -41,6 +41,29 @@ export class AIDriver {
     let gapAhead = false;
     for (let g = 0; g < 45; g += 3) if (tr.gap[(i + g) % N] || tr.launch[(i + g) % N]) { gapAhead = true; break; }
     if (gapAhead) lane = 0;
+    // Weggabelung: eine Spur wählen und dabei bleiben
+    const isl = Math.max(tr.island[i], tr.island[(i + 20) % N]);
+    if (isl > 0.5) {
+      if (this.forkSide === undefined) this.forkSide = Math.random() < 0.5 ? -1 : 1;
+      const j = (i + 20) % N;
+      lane = this.forkSide * (isl + (tr.hw[j] - isl) / 2);
+    } else this.forkSide = undefined;
+    this.noDrift = false;
+    // Abkürzung nehmen (geschickte Fahrer öfter)
+    for (const sc of tr.shortcuts || []) {
+      const ahead = (sc.i - i + N) % N;
+      if (ahead < 40 && ahead > 0) {
+        if (this.scFor !== sc) { this.scFor = sc; this.scTake = Math.random() < 0.35 + (this.skill - 0.9) * 2.5; }
+        if (this.scTake) { lane = sc.lat * 1.15; this.noDrift = ahead < 40; }
+      }
+    }
+    // Einstürzende Brücke: auf die Seite, deren Planken halten
+    if (tr.crumble[(i + 6) % N] && tr.crumbleGap) {
+      const j = (i + 6) % N, hwj = tr.hw[j];
+      const leftOk = !tr.crumbleGap(j, -1), rightOk = !tr.crumbleGap(j, 1);
+      if (leftOk && !rightOk) lane = -hwj / 2;
+      else if (rightOk && !leftOk) lane = hwj / 2;
+    }
     // Honigpfützen ausweichen
     for (const e of race.items.ents) {
       if (e.type !== 'honey') continue;
@@ -85,7 +108,7 @@ export class AIDriver {
     if (k.drift.on) {
       drift = Math.abs(curveNear) > 0.12 && Math.sign(curveNear) === k.drift.dir;
       drift = drift || (Math.abs(curve) > 0.3 && Math.sign(curve) === k.drift.dir);
-    } else if (!gapAhead && Math.abs(curve) > 0.45 && k.speed > 18 && this.skill > 0.88 && Math.random() < 0.08 * this.skill) {
+    } else if (!gapAhead && !this.noDrift && Math.abs(curve) > 0.45 && k.speed > 18 && this.skill > 0.88 && Math.random() < 0.08 * this.skill) {
       drift = true;
       steer = curve > 0 ? 1 : -1;
     }

@@ -2,7 +2,8 @@
 import * as THREE from 'three';
 import { landmarkClone } from './assets.js';
 
-const MODEL = { log: 'Log', snowball: 'Snowball', crab: 'Crab', barrel: 'Barrel', vent: 'Vent', bumper: 'GlowShroom' };
+const MODEL = { log: 'Log', snowball: 'Snowball', crab: 'Crab', barrel: 'Barrel', vent: 'Vent', bumper: 'GlowShroom', barrelroll: 'Barrel', boulder: 'LavaRock' };
+const ROLLERS = ['snowball', 'barrelroll', 'boulder'];
 const _v = new THREE.Vector3(), _w = new THREE.Vector3();
 
 export class Hazards {
@@ -11,10 +12,24 @@ export class Hazards {
     this.list = [];
     const tr = race.track;
     for (const d of tr.def.hazards || []) {
-      const mesh = landmarkClone(MODEL[d.type]);
+      let mesh = landmarkClone(MODEL[d.type]);
       if (!mesh) continue;
+      let spin = null;
+      if (d.type === 'barrelroll' || d.type === 'boulder') {
+        // liegend rollen: Hülle (Richtung) > Drehachse > Modell
+        const wrap = new THREE.Group();
+        spin = new THREE.Group();
+        spin.position.y = d.type === 'boulder' ? 1.3 : 1.1;
+        if (d.type === 'barrelroll') { mesh.rotation.z = Math.PI / 2; mesh.position.set(1.3, 0, 0); }
+        else { mesh.position.set(0, -0.7, 0); mesh.scale.setScalar(1.4); }
+        spin.add(mesh);
+        wrap.add(spin);
+        mesh = wrap;
+      }
       const i = Math.round(d.f * tr.N) % tr.N;
-      const h = { ...d, i, mesh, phase: Math.random() * 10, pos: new THREE.Vector3(), idx: i, r: 1.4, cool: 0 };
+      const h = { ...d, i, mesh, spin, phase: Math.random() * 10, pos: new THREE.Vector3(), idx: i, r: 1.4, cool: 0 };
+      if (d.type === 'barrelroll') { h.r = 1.3; h.idx = i + 60; h.speed = 11; }
+      if (d.type === 'boulder') { h.r = 1.6; h.idx = i + 60; h.speed = 9; }
       if (d.type === 'log') h.r = 1.1;
       if (d.type === 'snowball') { h.r = 1.9; h.idx = i + 70; }
       if (d.type === 'crab') { h.r = 1.6; mesh.scale.setScalar(1.2); }
@@ -41,7 +56,7 @@ export class Hazards {
         lat = (s * 2 - 1) * (hw - 1.4);
         break;
       }
-      case 'snowball': idx = h.idx; lat = Math.sin(h.phase) * (hw - 2); break;
+      case 'snowball': case 'barrelroll': case 'boulder': idx = h.idx; lat = Math.sin(h.phase) * (hw - 2); break;
     }
     tr.pointAt(idx, lat, h.pos);
     const ii = ((Math.floor(idx) % tr.N) + tr.N) % tr.N;
@@ -56,9 +71,10 @@ export class Hazards {
   update(dt) {
     const race = this.race, tr = race.track, t = race.clock;
     for (const h of this.list) {
-      if (h.type === 'snowball') {
-        h.idx -= dt * 7; // rollt der Fahrtrichtung entgegen
-        if (h.idx < h.i - 10) { h.idx = h.i + 70; h.phase = Math.random() * 6; }
+      if (ROLLERS.includes(h.type)) {
+        h.idx -= dt * (h.speed || 7) / 2 * 2; // rollt der Fahrtrichtung entgegen
+        if (h.idx < h.i - 10) { h.idx = h.i + (h.type === 'snowball' ? 70 : 60); h.phase = Math.random() * 6; }
+        if (h.spin) h.spin.rotation.x -= dt * (h.speed || 7) / 1.2;
       }
       this.place(h, t);
       h.cool = Math.max(0, h.cool - dt);
@@ -98,7 +114,7 @@ export class Hazards {
           if (vn < 0) { k.vel.x -= nx * vn * 2.2; k.vel.z -= nz * vn * 2.2; k.speed *= 0.7; }
           if (h.cool <= 0) { race.audio.boing(k); h.cool = 0.3; h.mesh.scale.setScalar(1.6); }
         } else if (k.stun <= 0) {
-          k.hit(h.type === 'snowball' ? 1.2 : 1);
+          k.hit(ROLLERS.includes(h.type) ? 1.2 : 1);
         }
       }
       if (h.type === 'bumper') h.mesh.scale.setScalar(Math.max(1.3, h.mesh.scale.x - dt * 2));

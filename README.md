@@ -27,6 +27,7 @@ Ein flauschiges Kart-Rennspiel mit süssen Tieren, das direkt im Browser läuft.
 - **Splitscreen** für bis zu 4 Spieler (Tastatur + Gamepads)
 - **8 Strecken:** Kleeblatt-Wiese, Bambuswald-Tempel, Pilzhöhlen, Honigfabrik, Gletscher-Gipfel (Eis), Korallenriff (Unterwasser), Wolkenschloss (Brücke), Dschungel-Vulkan
 - **Fahren:** Drift mit 3 Boost-Stufen, Super-Start, Tricks nach Rampen, Boost-Felder
+- **Strecken:** Brücken und Kreuzungen auf mehreren Ebenen, Steilkurven, Halfpipes, Loopings, Weggabelungen, grosse Schanzen über Abgründe, Gleiter-Abschnitte, einstürzende Brücken, rollende Fässer und Felsen, Unterwasser-Abschnitt
 - **Items:** 🌰 Eichel-Wurf · 🍯 Honigpfütze · 🧶 Wollknäuel · 🫧 Seifenblasen-Schild · 🥕 Karotten-Turbo (1× / 3×) · 🌧️ Gewitterwölkchen · 💤 Gähn-Welle
 - 3 Geschwindigkeitsklassen, Computer-Gegner, selbst erzeugte Musik und Soundeffekte, Touch-Steuerung für Handys
 

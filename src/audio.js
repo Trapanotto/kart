@@ -102,7 +102,10 @@ export class Audio {
     this.sfxBus.connect(this.master);
     this.musicBus = this.ctx.createGain();
     this.musicBus.gain.value = this.music * 0.35;
-    this.musicBus.connect(this.master);
+    this.musicFilter = this.ctx.createBiquadFilter();
+    this.musicFilter.type = 'lowpass';
+    this.musicFilter.frequency.value = 20000;
+    this.musicBus.connect(this.musicFilter).connect(this.master);
     const len = this.ctx.sampleRate;
     this.noiseBuf = this.ctx.createBuffer(1, len, len);
     const d = this.noiseBuf.getChannelData(0);
@@ -474,6 +477,13 @@ export class Audio {
     this.songTimer = setInterval(tick, 40);
     tick();
   }
+  // gedämpfter Klang unter Wasser
+  setUnderwater(on) {
+    if (!this.ctx || this.uwOn === on) return;
+    this.uwOn = on;
+    this.musicFilter.frequency.setTargetAtTime(on ? 700 : 20000, this.ctx.currentTime, 0.15);
+  }
+
   // schneller in der letzten Runde
   setTempo(t) { this.tempo = t; }
   stopSong() {

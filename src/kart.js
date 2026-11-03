@@ -1,11 +1,13 @@
 // Kart: Arcade-Fahrphysik, Drift, Boost, Treffer, Animation des Fahrers
 import * as THREE from 'three';
 import { createKartModel } from './assets.js';
+import { loopFrame, LOOP_LEN, LOOP_SHIFT, underwater } from './features.js';
 
 const DRIFT_LEVELS = [0.9, 1.8, 2.8];
 const DRIFT_COLORS = ['#FFFFFF', '#4FC3FF', '#FF9A2B', '#C77DFF'];
 const BOOST_TIME = [0, 0.6, 1.05, 1.6];
 const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _q = new THREE.Quaternion();
+const _f = new THREE.Vector3(), _up = new THREE.Vector3(), _x = new THREE.Vector3(), _m4 = new THREE.Matrix4();
 
 export function kartStats(c, cls) {
   return {
@@ -28,6 +30,24 @@ export class Kart {
     this.model = createKartModel(char.id, { fur: race.settings.fur, ghost: false });
     race.scene.add(this.model.root);
     this.model.root.rotation.order = 'YXZ';
+    // Gleiter-Flügel (nur beim Gleiten sichtbar)
+    const wing = new THREE.Group();
+    const sail = new THREE.Mesh(new THREE.ConeGeometry(3.2, 0.25, 3), new THREE.MeshStandardMaterial({ color: char.color, roughness: 0.5, side: THREE.DoubleSide }));
+    sail.rotation.set(0, Math.PI, 0);
+    sail.scale.set(1, 1, 0.55);
+    const stripe = new THREE.Mesh(new THREE.ConeGeometry(1.6, 0.27, 3), new THREE.MeshStandardMaterial({ color: '#FFFFFF', roughness: 0.5 }));
+    stripe.rotation.set(0, Math.PI, 0);
+    stripe.scale.set(1, 1, 0.55);
+    for (const s of [-1, 1]) {
+      const strut = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.6), new THREE.MeshStandardMaterial({ color: '#555' }));
+      strut.position.set(s * 0.5, -0.8, 0);
+      wing.add(strut);
+    }
+    wing.add(sail, stripe);
+    wing.position.set(0, 3.2, 0.2);
+    wing.visible = false;
+    this.model.root.add(wing);
+    this.wing = wing;
     this.pos = new THREE.Vector3();
     this.vel = new THREE.Vector3();
     this.heading = 0;
@@ -136,10 +156,25 @@ export class Kart {
       }
     }
 
-    tr.locate(this.pos, this.trackIdx, this.loc);
+    if (this.rail) { this.updateRail(dt); return; }
+    tr.locate(this.pos, this.cannon ? -1 : this.trackIdx, this.loc);
     const loc = this.loc;
     this.trackIdx = loc.i;
-    const onRoad = Math.abs(loc.lat) <= tr.hw[loc.i] + 0.6;
+    // Looping-Einfahrt
+    if (this.grounded && !this.cannon) for (const L of tr.loops) {
+      const di = (loc.i - L.c + tr.N) % tr.N;
+      if (di <= 2 && this.speed > 3) {
+        this.rail = { L, s: 0, off: Math.max(-2.4, Math.min(2.4, loc.lat + LOOP_SHIFT / 2)) };
+        this.speed = Math.max(this.speed, 24);
+        this.drift.on = false;
+        this.updateRail(dt);
+        return;
+      }
+    }
+    const uw = underwater(tr, this.pos);
+    if (uw && !this.uw && this.race.fxOn) this.race.burst(this.pos, '#CFF6FF', 14);
+    this.uw = !!uw;
+    const onRoad = Math.abs(loc.lat) <= tr.hw[loc.i] + 0.6 || tr.hp[loc.i] > 0;
     const grip = this.char.iceGrip ? 1 : tr.grip[loc.i];
 
     // Höchstgeschwindigkeit
@@ -149,6 +184,7 @@ export class Kart {
     if (this.drowsy > 0) maxV *= 0.55;
     if (this.small > 0) maxV *= 0.72;
     if (this.cloud > 0) maxV *= 1.06;
+    if (this.uw) maxV *= 0.93;
     if (this.boostTime > 0) maxV *= 1.38;
 
     // Längsbewegung
@@ -204,7 +240,8 @@ export class Kart {
     let turn;
     if (d.on) turn = d.dir * st.steer * (0.62 + 0.5 * steer * d.dir) * speedF;
     else turn = steer * st.steer * speedF * (this.speed < 0 ? -1 : 1) * (1 - Math.min(0.35, Math.abs(this.speed) / 140));
-    if (!this.grounded) turn *= 0.6;
+    if (!this.grounded) turn *= this.glide ? 1.0 : 0.6;
+    if (this.cannon) turn = 0;
     this.heading -= turn * dt;
     this.steerVis += ((d.on ? d.dir * 0.6 + steer * 0.4 : steer) - this.steerVis) * Math.min(1, dt * 10);
 
@@ -212,24 +249,49 @@ export class Kart {
     const f = this.forward;
     let g = d.on ? 2.6 : 8.5;
     g *= grip < 1 ? (d.on ? 0.6 : 0.3) : 1;
-    if (!this.grounded) g = 0.6;
+    if (!this.grounded) g = this.glide ? 2.2 : 0.6;
+    if (this.cannon) g = 0;
     const k = 1 - Math.exp(-g * dt);
     this.vel.x += (f.x * this.speed - this.vel.x) * k;
     this.vel.z += (f.z * this.speed - this.vel.z) * k;
+    if (this.grounded && !this.cannon) {
+      const sl = tr.crossSlope(loc.i, loc.lat);
+      if (sl) {
+        const R = tr.R[loc.i];
+        const a = -sl * 24 * dt;
+        this.vel.x += R.x * a; this.vel.z += R.z * a;
+        // Über die Halfpipe-Kante: Luftsprung
+        if (tr.hp[loc.i] > 0 && Math.abs(loc.lat) > tr.fence[loc.i] - 1.8) {
+          const s = Math.sign(loc.lat);
+          const vn = (this.vel.x * R.x + this.vel.z * R.z) * s;
+          if (vn > 6) {
+            this.vy = vn * 0.9;
+            this.grounded = false;
+            this.rampAir = true;
+            this.trickDone = false;
+            this.vel.x -= R.x * s * vn * 1.6; this.vel.z -= R.z * s * vn * 1.6;
+          }
+        }
+      }
+    }
     this.pos.x += this.vel.x * dt;
     this.pos.z += this.vel.z * dt;
-
     // Höhe / Sprung
-    tr.locate(this.pos, this.trackIdx, loc);
+    tr.locate(this.pos, this.cannon ? -1 : this.trackIdx, loc);
     this.trackIdx = loc.i;
-    const gravity = this.race.theme.underwater ? 15 : 26;
+    const gravity = this.glide ? 7 : this.uw || this.race.theme.underwater ? 13 : 26;
     if (this.grounded) {
       if (loc.gap) {
         this.grounded = false;
         this.vy = Math.min(this.vy, 0);
+      } else if (this.tryShortcut(loc)) {
+        // Kanonen-Abkürzung gestartet
       } else if (tr.launch[loc.i] && Math.abs(loc.lat) < tr.hw[loc.i] && this.speed > 10 && this.launchedAt !== loc.i) {
         this.launchedAt = loc.i;
-        this.vy = 5.5 + this.speed * 0.14;
+        const kind = tr.launch[loc.i];
+        this.vy = kind === 2 ? 9 + this.speed * 0.16 : kind === 3 ? 8.5 : 5.5 + this.speed * 0.14;
+        if (kind >= 2) this.speed = Math.max(this.speed, this.st.maxSpeed * 0.95);
+        if (kind === 3) this.glide = true;
         this.grounded = false;
         this.rampAir = true;
         this.trickDone = false;
@@ -242,10 +304,18 @@ export class Kart {
     if (!this.grounded) {
       this.airTime += dt;
       this.vy -= gravity * dt;
+      if (this.glide) this.vy = Math.max(this.vy, -2.8);
       this.pos.y += this.vy * dt;
       if (this.pos.y <= loc.y && this.vy <= 0) {
         this.pos.y = loc.y;
         this.grounded = true;
+        this.glide = false;
+        if (this.cannon) {
+          this.cannon = null;
+          const T = tr.T[loc.i];
+          this.heading = Math.atan2(T.x, T.z);
+          this.vel.set(T.x * this.speed, 0, T.z * this.speed);
+        }
         this.squash = Math.min(0.25, this.airTime * 0.3);
         if (this.rampAir && this.trickDone && this.stun <= 0) this.boost(0.9, 2);
         if (this.airTime > 0.45) this.race.audio.land(this);
@@ -259,8 +329,17 @@ export class Kart {
     if ((loc.gap && this.pos.y < loc.roadY - 5) || this.pos.y < tr.groundY - 4) { this.race.respawn(this); return; }
 
     // Bande
+    // Insel einer Weggabelung
+    const isl = tr.island[loc.i];
+    if (isl > 0.3 && Math.abs(loc.lat) < isl + 0.9 && this.pos.y < loc.y + 1.6 && !this.cannon) {
+      const R = tr.R[loc.i], s = Math.sign(loc.lat) || 1;
+      const push = isl + 0.9 - Math.abs(loc.lat);
+      this.pos.x += R.x * s * push; this.pos.z += R.z * s * push;
+      const vn = -(this.vel.x * R.x + this.vel.z * R.z) * s;
+      if (vn > 0) { this.vel.x += R.x * s * vn * 1.6; this.vel.z += R.z * s * vn * 1.6; if (vn > 7) { this.speed *= 0.85; this.race.audio.bump(this); } }
+    }
     const lim = tr.fence[loc.i] - 0.9;
-    if (Math.abs(loc.lat) > lim) {
+    if (Math.abs(loc.lat) > lim && !this.cannon) {
       const R = tr.R[loc.i];
       const s = Math.sign(loc.lat);
       const over = Math.abs(loc.lat) - lim;
@@ -294,6 +373,70 @@ export class Kart {
     // Effekte
     this.emitFx(dt, onRoad);
     this.updateModel(dt);
+  }
+
+  // Kanonen-Schanze: fliegt im Bogen zu einem späteren Streckenteil
+  tryShortcut(loc) {
+    const tr = this.race.track;
+    if (!tr.shortcuts || this.speed < 12) return false;
+    for (const sc of tr.shortcuts) {
+      const di = Math.abs(loc.i - sc.i);
+      if (Math.min(di, tr.N - di) > 3 || Math.abs(loc.lat - sc.lat) > 3.2) continue;
+      const q = tr.P[sc.j];
+      const dx = q.x - this.pos.x, dz = q.z - this.pos.z, d = Math.hypot(dx, dz);
+      const v = Math.max(this.speed, 32);
+      const t = d / v;
+      const g = this.uw ? 13 : 26;
+      this.vy = (q.y - this.pos.y) / t + 0.5 * g * t;
+      this.vel.set((dx / d) * v, 0, (dz / d) * v);
+      this.speed = v;
+      this.heading = Math.atan2(dx, dz);
+      this.cannon = { j: sc.j };
+      this.grounded = false;
+      this.rampAir = true;
+      this.trickDone = false;
+      this.drift.on = false;
+      this.race.audio.boost();
+      if (this.human !== null) this.race.hud.message(this.human, '🚀 Abkürzung!', 1.2);
+      return true;
+    }
+    return false;
+  }
+
+  // Fahrt durch den Looping
+  updateRail(dt) {
+    const r = this.rail, L = r.L, tr = this.race.track;
+    this.speed = Math.max(this.speed, 24);
+    r.s += (this.speed * dt) / L.len;
+    if (r.s >= 1) {
+      loopFrame(L, 1, r.off, this.pos, null, null);
+      this.rail = null;
+      const i = (L.c + LOOP_LEN) % tr.N;
+      const T = tr.T[i];
+      this.heading = Math.atan2(T.x, T.z);
+      this.visYaw = this.heading;
+      this.vel.set(T.x * this.speed, 0, T.z * this.speed);
+      this.grounded = true;
+      this.trackIdx = i;
+      tr.locate(this.pos, i, this.loc);
+      this.pos.y = this.loc.y;
+      this.model.root.quaternion.identity();
+      this.updateModel(dt);
+      return;
+    }
+    loopFrame(L, r.s, r.off, this.pos, _f, _up);
+    this.railFwd = _f; this.railUp = _up;
+    const idx = L.c + r.s * LOOP_LEN;
+    this.trackIdx = Math.floor(idx) % tr.N;
+    this.loc.i = this.trackIdx; this.loc.idx = idx % tr.N; this.loc.lat = 0;
+    this.vel.copy(_f).multiplyScalar(this.speed);
+    this.emitFx(dt, true);
+    this.updateModel(dt);
+    // Kart an der Bahn ausrichten: x = links, y = oben, z = vorwärts
+    _x.crossVectors(_up, _f).normalize();
+    _m4.makeBasis(_x, _up, _f);
+    this.model.root.quaternion.setFromRotationMatrix(_m4);
+    if (this.boostTime > 0) this.boostTime = Math.max(0, this.boostTime - dt);
   }
 
   emitFx(dt, onRoad) {
@@ -355,7 +498,11 @@ export class Kart {
     const along = T ? Math.sin(this.visYaw) * T.x + Math.cos(this.visYaw) * T.z : 1;
     const pitch = this.grounded ? -Math.atan(slope * along) : Math.max(-0.4, Math.min(0.4, -this.vy * 0.03));
     r.rotation.x += (pitch - r.rotation.x) * Math.min(1, dt * 10);
-    r.rotation.z = this.steerVis * 0.06 * Math.min(1, this.speed / 20);
+    const tr = this.race.track;
+    const roll = this.grounded && this.loc.i !== undefined ? Math.atan(tr.crossSlope(this.loc.i, this.loc.lat || 0)) : 0;
+    this.rollVis = (this.rollVis || 0) + (roll - (this.rollVis || 0)) * Math.min(1, dt * 10);
+    r.rotation.z = this.steerVis * 0.06 * Math.min(1, this.speed / 20) - this.rollVis;
+    if (this.wing) { this.wing.visible = !!this.glide; this.wing.rotation.z = -this.steerVis * 0.3; }
     const s = this.small > 0 ? 0.6 : 1;
     this.squash = Math.max(0, this.squash - dt);
     r.scale.set(s * (1 + this.squash * 0.6), s * (1 - this.squash), s * (1 + this.squash * 0.6));

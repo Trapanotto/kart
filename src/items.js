@@ -139,6 +139,39 @@ export class ItemManager {
       this.group.add(m);
       this.pads.push({ i, lat: lat * tr.hw[i] });
     }
+    // Weggabelungen: eine Spur mit Turbo-Feldern, die andere mit Item-Boxen
+    const padGeo = new THREE.PlaneGeometry(4.5, 8);
+    for (const fk of tr.forks || []) {
+      const lane = (i, side) => side * (tr.island[i] + (tr.hw[i] - tr.island[i]) / 2);
+      for (const q of [0.3, 0.55, 0.8]) {
+        const i = (fk.ia + Math.round(fk.len * q)) % tr.N;
+        const lat = lane(i, fk.pads);
+        const pos = tr.pointAt(i, lat);
+        const m = new THREE.Mesh(padGeo, mat);
+        m.rotation.order = 'YXZ';
+        m.rotation.y = tr.headingAt(i);
+        m.rotation.x = -Math.PI / 2;
+        m.position.set(pos.x, pos.y + 0.07, pos.z);
+        this.group.add(m);
+        this.pads.push({ i, lat });
+      }
+      if (this.race.mode !== 'tt') {
+        const i = (fk.ia + Math.round(fk.len * 0.5)) % tr.N;
+        const geo = new THREE.BoxGeometry(1.4, 1.4, 1.4);
+        for (const o of [-2.6, 0, 2.6]) {
+          const pos = tr.pointAt(i, lane(i, -fk.pads) + o);
+          pos.y += 1.4;
+          const mesh = new THREE.Mesh(geo, this.boxMat);
+          const paw = new THREE.Sprite(this.pawMat);
+          paw.scale.setScalar(0.9);
+          mesh.add(paw);
+          mesh.position.copy(pos);
+          mesh.castShadow = true;
+          this.group.add(mesh);
+          this.boxes.push({ pos, mesh, respawn: 0, phase: Math.random() * 6 });
+        }
+      }
+    }
   }
 
   buildPuddles() {

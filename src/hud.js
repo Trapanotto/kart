@@ -20,6 +20,7 @@ export class Hud {
       el.className = 'vp';
       el.innerHTML = `
         <div class="h-speed"></div>
+        <div class="h-water"><i></i><i></i><i></i><i></i><i></i></div>
         <div class="h-item"><div class="slot"><span class="icon"></span><span class="count"></span></div></div>
         <div class="h-lap"><div class="lap"></div><div class="time"></div><div class="best"></div></div>
         <div class="h-pos"><span class="num"></span><span class="suf">.</span></div>
@@ -150,6 +151,7 @@ export class Hud {
       if (k.cloud > 0 && !k.item && k.rolling <= 0) v.icon.textContent = '🌧️';
       v.wrong.classList.toggle('show', k.wrongWay > 1);
       v.speed.classList.toggle('on', k.boostTime > 0 && !k.finished);
+      v.el.querySelector('.h-water').classList.toggle('on', !!(race.camUw && race.camUw[this.vps.indexOf(v)]));
       const lvl = k.drift.on ? k.drift.level : -1;
       v.drift.forEach((d, i) => d.classList.toggle('on', lvl > i));
       v.el.querySelector('.h-drift').classList.toggle('show', k.drift.on);
