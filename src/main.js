@@ -8,10 +8,12 @@ import { Race } from './race.js';
 import { Menu } from './menu.js';
 import { Showroom } from './showroom.js';
 import { Post } from './post.js';
+import { loadBaked } from './bake.js';
+import { CLASSES } from './data.js';
 import { loadProgress } from './progress.js';
-import { TRACKS, POINTS, CHARACTERS } from './data.js';
+import { TRACKS, POINTS, CHARACTERS, THEMES } from './data.js';
 
-const DEFAULTS = { fur: true, shadows: true, bloom: true, quality: 1, music: 0.5, sfx: 0.7 };
+const DEFAULTS = { fur: true, shadows: true, bloom: true, grade: true, speedfx: true, envmap: true, haptics: true, baked: true, weather: true, quality: 1, music: 0.5, sfx: 0.7 };
 
 function loadSettings() {
   try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem('pgp_settings') || '{}') }; } catch (e) { return { ...DEFAULTS }; }
@@ -81,6 +83,21 @@ class App {
       for (let i = 0; i < steps; i++) this.race.update(dt / steps);
       this.race.render(this.renderer);
       document.body.classList.toggle('racing', !this.race.paused && !this.menu.visible());
+    } else if (this.demo && this.showroom.mode === 'title') {
+      // Startbildschirm: laufendes Rennen mit Kamerafahrten
+      this.input.consumePause();
+      const steps = Math.ceil(dt / (1 / 60));
+      for (let i = 0; i < steps; i++) this.demo.update(dt / steps);
+      this.demo.render(this.renderer);
+      document.body.classList.remove('racing');
+      this.demoT += dt;
+      if (this.demoT > 40) { this.demoT = -1e9; this.startDemo(true); }
+      const tag = document.getElementById('demo-tag');
+      if (tag) {
+        const lead = this.demo.ranked[0];
+        const txt = `<i></i> LIVE · ${this.demo.def.name} · Runde ${Math.min(3, Math.max(1, lead.lap))}/3 · vorne: ${lead.char.name}`;
+        if (tag.dataset.t !== txt) { tag.dataset.t = txt; tag.innerHTML = txt; }
+      }
     } else {
       this.input.consumePause();
       this.showroom.update(dt);
@@ -91,12 +108,47 @@ class App {
   }
 
   // ------------------------------------------------------------ Rennen
-  startRace(cfg) {
+  // Startbildschirm-Demo: zufällige Strecke, 8 Computer-Fahrer; switch = mit Abblende zur nächsten Strecke
+  async startDemo(switchTrack = false) {
+    if (this.demoBusy || (this.demo && !switchTrack)) return;
+    this.demoBusy = true;
+    const fade = document.getElementById('demo-fade');
+    try {
+      if (switchTrack && fade) { fade.classList.add('on'); await new Promise((r) => setTimeout(r, 550)); }
+      const choices = TRACKS.map((t, i) => i).filter((i) => i !== this.demoTrack);
+      const ti = choices[Math.floor(Math.random() * choices.length)];
+      const cfg = { mode: 'demo', track: ti, cls: 1, players: [] };
+      cfg.baked = this.settings.baked !== false ? await loadBaked(TRACKS[ti].id, this.settings.quality) : null;
+      if (this.race) return; // inzwischen wurde ein Rennen gestartet
+      const old = this.demo;
+      this.demo = new Race(this, cfg);
+      this.demoTrack = ti;
+      this.demoT = 0;
+      if (old) old.dispose();
+    } catch (e) {
+      console.warn('Demo-Rennen nicht möglich', e);
+    } finally {
+      this.demoBusy = false;
+      if (fade) fade.classList.remove('on');
+    }
+  }
+
+  stopDemo() {
+    if (this.demo) this.demo.dispose();
+    this.demo = null;
+  }
+
+  async startRace(cfg) {
+    this.stopDemo();
     this.endRace();
     this.lastCfg = cfg;
     this.lastPlayers = cfg.players.length;
+    // gebackenes Licht (falls vorhanden; im Spiegel-Modus nicht, dort waeren die Schatten seitenverkehrt)
+    cfg.baked = null;
+    if (this.settings.baked !== false && !CLASSES[cfg.cls].mirror) cfg.baked = await loadBaked(TRACKS[cfg.track].id, this.settings.quality);
     this.menu.hide();
     this.race = new Race(this, cfg);
+    this.stopDemo(); // falls die Demo inzwischen fertig geladen wurde
   }
 
   endRace() {
@@ -164,6 +216,22 @@ class App {
     this.gp = gpSaved;
   }
 }
+
+// Entwicklung: Strecke fürs Backen in Blender exportieren (nur mit `node tools/serve.mjs --dev`)
+App.prototype.exportBake = async function (trackIndex) {
+  const { Track } = await import('./track.js');
+  const { exportTrack } = await import('./bake.js');
+  const def = TRACKS[trackIndex];
+  const scene = new THREE.Scene();
+  const track = new Track(def, THEMES[def.theme], false);
+  track.build(scene, { ...this.settings, shadows: true });
+  const { glb, meta } = await exportTrack(track);
+  const post = (file, body) => fetch('/__save?file=' + file, { method: 'POST', body }).then((r) => { if (!r.ok) throw new Error('Speichern verboten – Server mit --dev starten'); });
+  await post(def.id + '.glb', new Blob([glb]));
+  const th = THEMES[def.theme];
+  await post(def.id + '.json', JSON.stringify({ ...meta, sun: th.sun, hemi: th.hemi, sky: th.sky, fog: th.fog, night: !!th.night, underwater: !!th.underwater, ground: th.ground }));
+  return meta;
+};
 
 const app = new App();
 window.pgp = app;

@@ -230,3 +230,26 @@ body.racing #touch:not(:empty) { display: block; }
 .medals span.got { background: var(--yellow); }
 .record.fail { background: #8A93AA; }
 .newtrophy { font-size: 20px; font-weight: 800; color: #C8552B; }
+
+/* Startbildschirm mit laufendem Demo-Rennen */
+#ui.title { background: linear-gradient(180deg, rgba(30, 18, 50, 0.45) 0%, rgba(30, 18, 50, 0) 32%, rgba(30, 18, 50, 0) 58%, rgba(30, 18, 50, 0.55) 100%); }
+#demo-fade { position: fixed; inset: 0; z-index: 15; background: #1E1232; opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
+#demo-fade.on { opacity: 1; }
+.demo-tag { align-self: center; margin-top: 14px; font-weight: 800; font-size: 14px; color: #fff; background: rgba(30, 18, 50, 0.55); border-radius: 99px; padding: 4px 14px; letter-spacing: 0.3px; min-height: 1.4em; }
+.demo-tag:empty { visibility: hidden; }
+.demo-tag i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #FF4D4D; margin-right: 4px; animation: livepulse 1.2s infinite; }
+@keyframes livepulse { 50% { opacity: 0.25; } }
+/* breite Bildschirme: Menü links, damit das Rennen sichtbar bleibt */
+@media (min-width: 900px) and (min-aspect-ratio: 4/3) {
+  #ui.title { background: linear-gradient(90deg, rgba(30, 18, 50, 0.55) 0%, rgba(30, 18, 50, 0.25) 34%, rgba(30, 18, 50, 0) 55%), linear-gradient(0deg, rgba(30, 18, 50, 0.35) 0%, rgba(30, 18, 50, 0) 25%); }
+  .title .screen { align-items: flex-start; max-width: none; margin: 0; padding-left: 3vw; }
+  .title .logo { text-align: left; }
+  .title .logo h1 { font-size: clamp(56px, 6.5vw, 96px); }
+  .title .menu-col { margin-top: 4vh; align-items: stretch; }
+  .title .btn.big { min-width: 0; width: 320px; text-align: left; font-size: 22px; padding: 7px 24px; }
+  .title .menu-col { gap: 10px; }
+  .title .logo .paw { font-size: 34px; }
+  .title .row { justify-content: flex-start; }
+  .title .demo-tag { align-self: flex-start; margin-top: auto; }
+  .title footer { align-self: flex-start; margin-top: 10px; }
+}

@@ -97,6 +97,7 @@ export class Menu {
   title() {
     this.app.showroom.setMode('title');
     this.app.audio.playSong(8);
+    this.app.startDemo();
     this.show(`
       <div class="logo"><span class="paw">🐾</span><h1>Trapanotto<br>Kart</h1><p>Das flauschigste Kart-Rennen der Welt</p></div>
       <div class="menu-col">
@@ -109,6 +110,7 @@ export class Menu {
           <button class="btn focusable" data-act="controls">🎮 Steuerung</button>
         </div>
       </div>
+      <div class="demo-tag" id="demo-tag"></div>
       <footer>Tiere in Blender modelliert · läuft mit three.js im Browser</footer>`, { cls: 'title' });
   }
 
@@ -224,6 +226,12 @@ export class Menu {
         <label class="focusable" tabindex="0"><input type="checkbox" id="o-fur" ${s.fur ? 'checked' : ''}> Flauschiges Fell (Shader)</label>
         <label class="focusable" tabindex="0"><input type="checkbox" id="o-shadows" ${s.shadows ? 'checked' : ''}> Schatten</label>
         <label class="focusable" tabindex="0"><input type="checkbox" id="o-bloom" ${s.bloom ? 'checked' : ''}> Leuchteffekte</label>
+        <label class="focusable" tabindex="0"><input type="checkbox" id="o-grade" ${s.grade !== false ? 'checked' : ''}> Farblook der Welten</label>
+        <label class="focusable" tabindex="0"><input type="checkbox" id="o-speedfx" ${s.speedfx !== false ? 'checked' : ''}> Tempo-Unschärfe</label>
+        <label class="focusable" tabindex="0"><input type="checkbox" id="o-envmap" ${s.envmap !== false ? 'checked' : ''}> Echte Spiegelungen</label>
+        <label class="focusable" tabindex="0"><input type="checkbox" id="o-weather" ${s.weather !== false ? 'checked' : ''}> Wetter und Ereignisse (Regen, Wind, Lava …)</label>
+        <label class="focusable" tabindex="0"><input type="checkbox" id="o-baked" ${s.baked !== false ? 'checked' : ''}> Gebackenes Licht (schneller, weiche Schatten)</label>
+        <label class="focusable" tabindex="0"><input type="checkbox" id="o-haptics" ${s.haptics !== false ? 'checked' : ''}> Vibration (Gamepad, Handy)</label>
         <label>Grafik
           <select id="o-quality" class="focusable">
             <option value="0.75" ${s.quality == 0.75 ? 'selected' : ''}>Schnell</option>
@@ -232,13 +240,19 @@ export class Menu {
           </select></label>
         <label>Musik <input type="range" id="o-music" min="0" max="1" step="0.05" value="${s.music}" class="focusable"></label>
         <label>Effekte <input type="range" id="o-sfx" min="0" max="1" step="0.05" value="${s.sfx}" class="focusable"></label>
-        <p class="hint">Fell und Schatten gelten ab dem nächsten Rennen. Bei Ruckeln: Fell, Schatten oder Leuchteffekte ausschalten.</p>
+        <p class="hint">Fell, Schatten und Spiegelungen gelten ab dem nächsten Rennen. Bei Ruckeln: Fell, Schatten, Leuchteffekte oder Tempo-Unschärfe ausschalten.</p>
       </div>
       <button class="btn back focusable" data-act="back">← Zurück</button>`, { back: () => this.title() });
     const save = () => {
       s.fur = this.el.querySelector('#o-fur').checked;
       s.shadows = this.el.querySelector('#o-shadows').checked;
       s.bloom = this.el.querySelector('#o-bloom').checked;
+      s.grade = this.el.querySelector('#o-grade').checked;
+      s.speedfx = this.el.querySelector('#o-speedfx').checked;
+      s.envmap = this.el.querySelector('#o-envmap').checked;
+      s.baked = this.el.querySelector('#o-baked').checked;
+      s.weather = this.el.querySelector('#o-weather').checked;
+      s.haptics = this.el.querySelector('#o-haptics').checked;
       s.quality = +this.el.querySelector('#o-quality').value;
       s.music = +this.el.querySelector('#o-music').value;
       s.sfx = +this.el.querySelector('#o-sfx').value;

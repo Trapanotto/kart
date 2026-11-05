@@ -250,7 +250,8 @@ export class ItemManager {
         }
       }
       // Boost-Felder
-      if (k.grounded) for (const p of this.pads) {
+      // erst nach dem Start (ein Feld kann in der Startaufstellung liegen)
+      if (k.grounded && race.state !== 'intro' && race.state !== 'countdown') for (const p of this.pads) {
         const di = Math.abs(k.loc.i - p.i);
         if ((di < 3 || di > race.track.N - 3) && Math.abs(k.loc.lat - p.lat) < 2.6) { k.boost(1.0, 1); break; }
       }

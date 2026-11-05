@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { sampleCenterline, ROAD_HALF, OFFROAD, SPACING } from './data.js';
 import { instanceProps, propClone, landmarkClone } from './assets.js';
 import { prepareFeatures, Features } from './features.js';
+import { buildSpectacle, animateFans } from './scenery.js';
 
 export const FENCE = ROAD_HALF + OFFROAD;
 const RAMP_LEN = 6;      // Stützpunkte (x SPACING = 12 Einheiten)
@@ -283,6 +284,8 @@ export class Track {
 
   // ------------------------------------------------------------ Geometrie
   build(scene, settings) {
+    this.bakeLights = [];
+    this.landmarkIdx = [];
     const th = this.theme;
     const group = new THREE.Group();
     scene.add(group);
@@ -457,12 +460,15 @@ export class Track {
     this.buildSky(scene, th);
     this.buildScenery(group, th, settings);
     this.buildDetails(group, th, settings);
+    Object.assign(this, buildSpectacle(this, group, th, settings));
+    this.staticCount = group.children.length; // alles davor ist fest (wird fürs Backen genutzt)
     this.features = new Features(this, group, th, settings);
     return group;
   }
 
   update(dt, t) {
     if (this.features) this.features.update(dt, t);
+    for (const s of this.scroll || []) s.tex.offset.y = (t * s.speed) % 1;
   }
 
   // Details: Kurvenschilder, Fähnchen, Laternen, Tribüne, Randpflanzen
@@ -551,6 +557,7 @@ export class Track {
       const p = this.P[i], R = this.R[i], w = this.fence[i] + 1.6;
       lampPosts.push(place(p.x + R.x * s * w, p.y + 2.2, p.z + R.z * s * w, 0));
       lampBalls.push(place(p.x + R.x * s * w, p.y + 4.6, p.z + R.z * s * w, 0));
+      if (th.night || th.volcano || th.underwater) (this.bakeLights ||= []).push({ p: [+(p.x + R.x * s * w).toFixed(2), +(p.y + 4.6).toFixed(2), +(p.z + R.z * s * w).toFixed(2)], c: th.night ? '#B6F3FF' : '#FFE08A', e: 1000 });
     }
     const glow = th.night || th.volcano || th.underwater ? 3 : 1.2;
     inst(new THREE.CylinderGeometry(0.14, 0.2, 4.4, 8), new THREE.MeshStandardMaterial({ color: '#5A5560', roughness: 0.5 }), lampPosts);
@@ -632,6 +639,7 @@ export class Track {
     });
     this.fanMesh.instanceMatrix.needsUpdate = true;
     this.fanEyes.instanceMatrix.needsUpdate = true;
+    for (const set of this.fanSets || []) animateFans(set, t);
   }
 
   buildEmbankment(group, th) {
@@ -869,6 +877,7 @@ export class Track {
       const side = lmName === 'Windmill' ? FENCE + 9 : 0;
       lm.position.set(p.x + R.x * side, p.y, p.z + R.z * side);
       lm.rotation.y = this.headingAt(i);
+      (this.landmarkIdx ||= []).push(i);
       group.add(lm);
       lm.traverse((o) => { if (o.name.startsWith('Spin')) this.spinners.push({ o, axis: lmName === 'Windmill' ? 'z' : 'x' }); });
     }

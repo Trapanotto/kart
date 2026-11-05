@@ -30,7 +30,11 @@ Ein flauschiges Kart-Rennspiel mit süssen Tieren, das direkt im Browser läuft.
 - **Fahren:** Drift mit 3 Boost-Stufen, Super-Start, Tricks nach Rampen, Boost-Felder
 - **Strecken:** Brücken und Kreuzungen auf mehreren Ebenen, Steilkurven, Halfpipes, Loopings, Weggabelungen, grosse Schanzen über Abgründe, Gleiter-Abschnitte, einstürzende Brücken, rollende Fässer und Felsen, Unterwasser-Abschnitt
 - **Items:** 🌰 Eichel-Wurf · 🌰🌰🌰 kreisende Eicheln · 🍯 Honigpfütze · 🎁 falsche Geschenkbox · 🧶 Wollknäuel · 🐝 Bienenschwarm · 🫧 Seifenblasen-Schild · 🥕 Karotten-Turbo (1× / 3×) · ✨ Goldene Karotte · 🍭 Regenbogen-Lolli · 🌧️ Gewitterwölkchen · 💤 Gähn-Welle – Eichel, Honig und Box lassen sich hinten festhalten
-- **Fahrtaktik:** Windschatten-Turbo, ein Rivale unter den Computer-Gegnern, Tacho
+- **Fahrtaktik:** Windschatten-Turbo, ein Rivale unter den Computer-Gegnern, Tacho, Turbo für knappes Überholen
+- **Wetter und Ereignisse** (pro Rennen ausgelost, im Zeitfahren aus): Pollenwind (Wiese), Regen mit Pfützen und Aquaplaning (Bambuswald), flackerndes Licht (Pilzhöhlen), Honigflut sperrt eine Spur (Honigfabrik), Blizzard mit Eisplatten (Gletscher, Pingo behält Grip), Strömung (Korallenriff), Gewitterböen auf Brücken mit Blitzen (Wolkenschloss), Lavastrom mit Ascheregen (Dschungel-Vulkan)
+- **Computer-Gegner mit Charakter:** Angreifer (Wolke, Axi), Verteidiger (Kapi, Stupsi), Heißsporn (Rubi), Konstant (Fauli, Otti, Pingo); unter Druck machen sie Fehler
+- **Kulisse:** Tunnel mit Lichtleisten, Ballonbögen über Geraden, kleine Tribünen mit jubelnden Fans an Sprüngen, Loopings und Halfpipes, Strohballen, Schneebälle, Kissen, Reifenstapel oder Korallen an engen Kurven, Lampions über der Strecke (Bambuswald, Pilzhöhlen, Riff, Vulkan) und ein zweites Wahrzeichen pro Welt: Picknick-Platz, Wasserfall, Riesenpilz mit Leuchtkristallen, Bienenstock-Turm mit Kessel, Forschungsstation mit Eisbögen, versunkenes Schiff mit Leuchtquallen, Regenbogenbrücke, dampfende Schlote. Lampen, Lampions und Leuchtteile sind beim Backen echte Lichtquellen
+- **Einsteiger-Hinweise** beim ersten Drift, Item, Gleiter, Looping und Wetter
 - 3 Geschwindigkeitsklassen, Computer-Gegner, selbst erzeugte Musik und Soundeffekte, Touch-Steuerung für Handys
 
 ## Steuerung
@@ -50,6 +54,8 @@ Ein flauschiges Kart-Rennspiel mit süssen Tieren, das direkt im Browser läuft.
 - **Modelle:** komplett per Python-Skript in **Blender** erzeugt ([tools/blender/build_models.py](tools/blender/build_models.py)): Tiere, Karts und Streckendeko, exportiert als glTF mit Draco-Kompression
 - **Fell:** Fellbüschel in Blender plus Shell-Fur-Shader im Spiel (abschaltbar unter Optionen)
 - **Strecken:** werden aus mathematischen Formen erzeugt ([src/data.js](src/data.js))
+- **Gebackenes Licht:** Licht, Schatten und Umgebungsverdeckung der festen Streckenteile werden in Blender mit Cycles vorberechnet ([tools/blender/bake_tracks.py](tools/blender/bake_tracks.py), [src/bake.js](src/bake.js)). Dadurch fallen die Echtzeit-Schatten der Strecke weg (schneller, besonders im Splitscreen); Karts bekommen einen weichen Kontaktschatten. Im Spiegel-Modus wird Echtzeit-Licht verwendet.
+- **Nachbearbeitung:** Farblook pro Welt, Tempo-Unschärfe am Bildrand, Farbsaum beim Turbo, Kantenglättung, echte Spiegelungen der Strecke; Kamerawackeln und Vibration (Gamepad, Handy). Alles in den Optionen abschaltbar.
 
 ### Modelle neu bauen
 
@@ -58,6 +64,22 @@ blender -b -P tools/blender/build_models.py -- assets render
 ```
 
 Ohne `render` werden nur die Modelle exportiert. Einzelne Tiere: `-- assets sloth sheep`.
+
+### Licht der Strecken neu backen
+
+Nötig, wenn sich eine Strecke oder ihre Deko ändert (sonst erkennt das Spiel, dass die gebackene Version nicht mehr passt, und nimmt Echtzeit-Licht).
+
+```bash
+node tools/serve.mjs 8081 --dev
+```
+
+Spiel öffnen, in der Browser-Konsole `await pgp.exportBake(0)` (Streckennummer 0–7) – schreibt `build/<id>.glb` und `.json`. Dann:
+
+```bash
+blender -b -P tools/blender/bake_tracks.py -- meadow     # oder: -- all, mit --fast für eine schnelle Vorschau
+```
+
+Ergebnis in `assets/tracks/<id>/` (gebackene Teile, Lightmaps in voller und halber Größe).
 
 ### Lokal starten
 

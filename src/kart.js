@@ -112,6 +112,7 @@ export class Kart {
     this.speed = Math.max(this.speed, this.st.maxSpeed * 0.9);
     if (this.human !== null) this.race.audio.boost();
     if (kind >= 2 && Math.random() < 0.5) this.race.audio.voice(this, 'wii');
+    if (kind >= 2) this.race.haptic?.(this, 50 + kind * 25, 0.25 + kind * 0.1);
   }
 
   hit(strength = 1) {
@@ -130,6 +131,7 @@ export class Kart {
     this.drift.pending = false;
     this.boostTime = 0;
     this.shake = 0.4;
+    this.race.impact?.(this, 0.75 * strength);
     this.race.audio.hit(this);
     this.race.burst(this.pos, '#FFE36A', 18, true);
     return true;
@@ -176,7 +178,7 @@ export class Kart {
     if (uw && !this.uw && this.race.fxOn) this.race.burst(this.pos, '#CFF6FF', 14);
     this.uw = !!uw;
     const onRoad = Math.abs(loc.lat) <= tr.hw[loc.i] + 0.6 || tr.hp[loc.i] > 0;
-    const grip = this.char.iceGrip ? 1 : tr.grip[loc.i];
+    const grip = (this.char.iceGrip ? 1 : tr.grip[loc.i]) * (this.envGrip ?? 1); // Wetter: Pfützen, Eisplatten
 
     // Höchstgeschwindigkeit
     let maxV = st.maxSpeed * this.rubber;
@@ -187,6 +189,7 @@ export class Kart {
     if (this.cloud > 0) maxV *= 1.06;
     if (this.uw) maxV *= 0.93;
     if (this.lolly > 0) maxV *= 1.2;
+    if (this.envSlow) maxV *= 1 - this.envSlow; // Honigflut, Lava
     if (this.boostTime > 0) maxV *= 1.38;
 
     // Längsbewegung
@@ -260,7 +263,10 @@ export class Kart {
       const sl = tr.crossSlope(loc.i, loc.lat);
       if (sl) {
         const R = tr.R[loc.i];
-        const a = -sl * 24 * dt;
+        // Hangabtrieb quer zur Fahrbahn erst mit Tempo (sonst rutschen stehende Karts beim Start weg);
+        // in der Halfpipe voll, dort soll man hochfahren und zurueckrollen
+        const roll = tr.hp[loc.i] > 0 ? (active ? 1 : 0) : active ? Math.min(1, Math.abs(this.speed) / 12) : 0;
+        const a = -sl * 24 * dt * roll;
         this.vel.x += R.x * a; this.vel.z += R.z * a;
         // Über die Halfpipe-Kante: Luftsprung
         if (tr.hp[loc.i] > 0 && Math.abs(loc.lat) > tr.fence[loc.i] - 1.8) {
@@ -278,6 +284,8 @@ export class Kart {
     }
     this.pos.x += this.vel.x * dt;
     this.pos.z += this.vel.z * dt;
+    // Wetter: Böen und Strömung versetzen seitlich
+    if (this.envWind && this.grounded) { const Rw = tr.R[loc.i]; this.pos.x += Rw.x * this.envWind * dt; this.pos.z += Rw.z * this.envWind * dt; }
     // Höhe / Sprung
     tr.locate(this.pos, this.cannon ? -1 : this.trackIdx, loc);
     this.trackIdx = loc.i;
@@ -321,6 +329,7 @@ export class Kart {
         this.squash = Math.min(0.25, this.airTime * 0.3);
         if (this.rampAir && this.trickDone && this.stun <= 0) this.boost(0.9, 2);
         if (this.airTime > 0.45) this.race.audio.land(this);
+        if (this.airTime > 0.3) this.race.impact?.(this, Math.min(1, 0.15 + this.airTime * 0.35));
         this.rampAir = false;
         this.trickDone = false;
         this.airTime = 0;
@@ -338,7 +347,7 @@ export class Kart {
       const push = isl + 0.9 - Math.abs(loc.lat);
       this.pos.x += R.x * s * push; this.pos.z += R.z * s * push;
       const vn = -(this.vel.x * R.x + this.vel.z * R.z) * s;
-      if (vn > 0) { this.vel.x += R.x * s * vn * 1.6; this.vel.z += R.z * s * vn * 1.6; if (vn > 7) { this.speed *= 0.85; this.race.audio.bump(this); } }
+      if (vn > 0) { this.vel.x += R.x * s * vn * 1.6; this.vel.z += R.z * s * vn * 1.6; if (vn > 7) { this.speed *= 0.85; this.race.audio.bump(this); this.race.impact?.(this, Math.min(0.8, vn / 22)); } }
     }
     const lim = tr.fence[loc.i] - 0.9;
     if (Math.abs(loc.lat) > lim && !this.cannon) {
@@ -354,6 +363,7 @@ export class Kart {
         if (vn > 7) {
           this.speed *= 0.82;
           this.race.audio.bump(this);
+          this.race.impact?.(this, Math.min(0.8, vn / 20));
           this.race.burst(this.pos, '#FFFFFF', 6);
           // Kart von der Bande wegdrehen
           const T = tr.T[loc.i];

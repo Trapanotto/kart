@@ -1,5 +1,5 @@
 // Computer-Fahrer
-import { ROAD_HALF } from './data.js';
+import { ROAD_HALF, PERSONAS } from './data.js';
 
 export class AIDriver {
   constructor(kart, skill) {
@@ -11,6 +11,7 @@ export class AIDriver {
     this.stuck = 0;
     this.reverse = 0;
     this.mistake = 0;
+    this.persona = PERSONAS[kart.char.persona] || PERSONAS.konstant;
   }
 
   update(dt, race) {
@@ -87,6 +88,23 @@ export class AIDriver {
         lane = Math.max(-hw + 1, Math.min(hw - 1, lane));
       }
     }
+    // Fahrertyp: Angreifer setzen frueh zum Ueberholen an, Verteidiger machen auf Geraden die Linie zu
+    const P = this.persona;
+    let pressure = false;
+    if (race.state === 'race' && !gapAhead && !(isl > 0.5) && !this.scTake) for (const o of race.karts) {
+      if (o === k || o.finished) continue;
+      let ahead = o.loc.i - i;
+      if (ahead < -N / 2) ahead += N; if (ahead > N / 2) ahead -= N;
+      if (ahead > 1 && ahead < 6 + P.aggression * 6 && Math.abs(o.loc.lat - lane) < 2.6) lane = o.loc.lat + (o.loc.lat > 0 ? -1 : 1) * (2.8 + P.aggression);
+      if (ahead < -1 && ahead > -6) {
+        pressure = true;
+        if (P.defend > 0.5 && Math.abs(curve) < 0.2) lane += (o.loc.lat - lane) * 0.5 * P.defend;
+      }
+    }
+    // Wetter: gesperrte Spurhaelfte (Honigflut, Lava) meiden
+    const hz = race.weather && race.weather.hazardAhead(i, 40);
+    if (hz) lane = hz.side > 0 ? -hw * 0.5 : hw * 0.5;
+    if (!(isl > 0.5)) lane = Math.max(-hw + 1, Math.min(hw - 1, lane));
     const target = tr.pointAt(i + look, lane);
     const dx = target.x - k.pos.x, dz = target.z - k.pos.z;
     const f = k.forward;
@@ -97,7 +115,10 @@ export class AIDriver {
 
     // Fehler ab und zu (je schwächer, desto öfter)
     this.mistake -= dt;
-    if (this.mistake < -6 + this.skill * 3 && Math.random() < 0.004) this.mistake = 0.5;
+    if (this.mistake < -6 + this.skill * 3 && Math.random() < 0.004 * (0.5 + P.mistakes) * (pressure ? 2.2 : 1)) {
+      this.mistake = 0.5;
+      if (k === race.rival && pressure) race.humans.forEach((h) => race.hud.message(h.human, `${k.char.name} patzt!`, 1.2));
+    }
     if (this.mistake > 0) steer += Math.sin(race.time * 7) * 0.6;
 
     let throttle = 1;
@@ -108,7 +129,7 @@ export class AIDriver {
     if (k.drift.on) {
       drift = Math.abs(curveNear) > 0.12 && Math.sign(curveNear) === k.drift.dir;
       drift = drift || (Math.abs(curve) > 0.3 && Math.sign(curve) === k.drift.dir);
-    } else if (!gapAhead && !this.noDrift && Math.abs(curve) > 0.45 && k.speed > 18 && this.skill > 0.88 && Math.random() < 0.08 * this.skill) {
+    } else if (!gapAhead && !this.noDrift && Math.abs(curve) > 0.45 && k.speed > 18 && this.skill > 0.88 && Math.random() < 0.08 * this.skill * (P.driftLove || 1)) {
       drift = true;
       steer = curve > 0 ? 1 : -1;
     }
@@ -151,14 +172,14 @@ export class AIDriver {
       this.itemHold += dt;
       switch (k.item) {
         case 'acorn': case 'honey': case 'fakebox':
-          if (this.itemHold > 0.6) inp.item = true; // aufnehmen und hinten halten
+          if (this.itemHold > 0.6 * P.itemRush) inp.item = true; // aufnehmen und hinten halten
           break;
         case 'acorn3':
           if (!k.orbits) { if (this.itemHold > 0.5) inp.item = true; }
           else if ((ahead && dist(ahead) < 40 && aligned(ahead) && this.itemHold > 0.8) || this.itemHold > 10) inp.item = true;
           break;
         case 'carrot': case 'carrot3': case 'goldcarrot':
-          if (this.itemHold > 0.7 && Math.abs(curve) < 0.25) inp.item = true;
+          if (this.itemHold > 0.7 * P.itemRush && Math.abs(curve) < 0.25) inp.item = true;
           break;
         default:
           if (this.itemHold > 1 + Math.random() * 2) inp.item = true;

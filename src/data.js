@@ -1,22 +1,30 @@
 // Spieldaten: Fahrer, Items, Strecken. Reine Daten, ohne three.js (auch in Node nutzbar).
 
+// Fahrertypen der Computer-Gegner: Angriffslust, Verteidigung (Linie zumachen), Fehler unter Druck
+export const PERSONAS = {
+  aggressiv: { name: 'Angreifer', aggression: 1.0, defend: 0.2, mistakes: 1.0, itemRush: 0.5 },
+  verteidiger: { name: 'Verteidiger', aggression: 0.3, defend: 1.0, mistakes: 0.4, itemRush: 1.6 },
+  konstant: { name: 'Konstant', aggression: 0.5, defend: 0.4, mistakes: 0.3, itemRush: 1.0 },
+  heisssporn: { name: 'Heißsporn', aggression: 0.9, defend: 0.3, mistakes: 2.2, itemRush: 0.6, driftLove: 2 },
+};
+
 // Werte 1..5
 export const CHARACTERS = [
-  { id: 'sloth', name: 'Fauli', animal: 'Faultier', art: 'das', color: '#8C6B4F', speed: 3, accel: 2, handling: 5, drift: 3, weight: 2, tough: 3,
+  { id: 'sloth', persona: 'konstant', name: 'Fauli', animal: 'Faultier', art: 'das', color: '#8C6B4F', speed: 3, accel: 2, handling: 5, drift: 3, weight: 2, tough: 3,
     perk: 'Bestes Handling', desc: 'Tiefenentspannt. Lenkt butterweich durch jede Kurve.' },
-  { id: 'sheep', name: 'Wolke', animal: 'Schaf', art: 'das', color: '#F4EEE4', speed: 2, accel: 5, handling: 3, drift: 3, weight: 1, tough: 3,
+  { id: 'sheep', persona: 'aggressiv', name: 'Wolke', animal: 'Schaf', art: 'das', color: '#F4EEE4', speed: 2, accel: 5, handling: 3, drift: 3, weight: 1, tough: 3,
     perk: 'Beste Beschleunigung', desc: 'Flauschig, tollpatschig und blitzschnell vom Start weg.' },
-  { id: 'redpanda', name: 'Rubi', animal: 'Rotpanda', art: 'der', color: '#C8552B', speed: 3, accel: 4, handling: 3, drift: 5, weight: 1, tough: 2,
+  { id: 'redpanda', persona: 'heisssporn', name: 'Rubi', animal: 'Rotpanda', art: 'der', color: '#C8552B', speed: 3, accel: 4, handling: 3, drift: 5, weight: 1, tough: 2,
     perk: 'Stärkster Drift-Boost', desc: 'Frech und flink. Liebt lange Drifts.' },
-  { id: 'hedgehog', name: 'Stupsi', animal: 'Igel', art: 'der', color: '#C69C72', speed: 3, accel: 3, handling: 3, drift: 3, weight: 1, tough: 5,
+  { id: 'hedgehog', persona: 'verteidiger', name: 'Stupsi', animal: 'Igel', art: 'der', color: '#C69C72', speed: 3, accel: 3, handling: 3, drift: 3, weight: 1, tough: 5,
     perk: 'Kaum zu erschüttern', desc: 'Schüchtern, aber stachelig. Treffer stecken Stupsi leicht weg.' },
-  { id: 'penguin', name: 'Pingo', animal: 'Pinguin', art: 'der', color: '#2C3350', speed: 3, accel: 3, handling: 4, drift: 3, weight: 2, tough: 3,
+  { id: 'penguin', persona: 'konstant', name: 'Pingo', animal: 'Pinguin', art: 'der', color: '#2C3350', speed: 3, accel: 3, handling: 4, drift: 3, weight: 2, tough: 3,
     perk: 'Voller Grip auf Eis', desc: 'Elegant auf jedem Untergrund, besonders auf Eis.', iceGrip: true },
-  { id: 'capybara', name: 'Kapi', animal: 'Capybara', art: 'das', color: '#A0724B', speed: 5, accel: 1, handling: 2, drift: 2, weight: 3, tough: 4,
+  { id: 'capybara', persona: 'verteidiger', name: 'Kapi', animal: 'Capybara', art: 'das', color: '#A0724B', speed: 5, accel: 1, handling: 2, drift: 2, weight: 3, tough: 4,
     perk: 'Höchstgeschwindigkeit', desc: 'Die Ruhe selbst. Einmal in Fahrt, kaum zu stoppen.' },
-  { id: 'otter', name: 'Otti', animal: 'Otter', art: 'der', color: '#7A5034', speed: 3, accel: 3, handling: 3, drift: 4, weight: 2, tough: 3,
+  { id: 'otter', persona: 'konstant', name: 'Otti', animal: 'Otter', art: 'der', color: '#7A5034', speed: 3, accel: 3, handling: 3, drift: 4, weight: 2, tough: 3,
     perk: 'Ausgeglichen', desc: 'Verspielt und vielseitig. Gut für Einsteiger.' },
-  { id: 'axolotl', name: 'Axi', animal: 'Axolotl', art: 'der', color: '#F7A8C6', speed: 3, accel: 4, handling: 3, drift: 3, weight: 1, tough: 2,
+  { id: 'axolotl', persona: 'aggressiv', name: 'Axi', animal: 'Axolotl', art: 'der', color: '#F7A8C6', speed: 3, accel: 4, handling: 3, drift: 3, weight: 1, tough: 2,
     perk: 'Schnell wieder auf den Beinen', desc: 'Immer gut gelaunt. Erholt sich blitzschnell.', recover: true },
 ];
 
@@ -68,28 +76,28 @@ export const POINTS = [15, 12, 10, 8, 6, 4, 2, 1];
 // shape.type 'lemniscate': Acht mit Brücke
 // Positionen (ramps, pads, items, ...) als Anteil der Runde 0..1
 export const THEMES = {
-  meadow: { sky: ['#7EC8FF', '#E6F6FF'], fog: '#CFEFFF', fogNear: 160, fogFar: 650, ground: '#7BC96F', ground2: '#69B85F',
+  meadow: { look: { contrast: 1.05, sat: 1.12, gain: [1.02, 1.01, 0.97], lift: [0, 0.002, 0.004], vig: 0.22 }, sky: ['#7EC8FF', '#E6F6FF'], fog: '#CFEFFF', fogNear: 160, fogFar: 650, ground: '#7BC96F', ground2: '#69B85F',
     road: '#B9A58F', road2: '#A8937C', offroad: '#9ED36A', curb: ['#FFFFFF', '#FF7A8A'], fence: '#FFD447', fence2: '#FF8FA3',
     sun: 2.6, hemi: 1.1, props: [['Tree', 0.35], ['Flower', 0.9], ['Rock', 0.15], ['Mushroom', 0.1]], hills: '#8ED081', particles: 'petals', music: 0 },
-  bamboo: { sky: ['#9AD7E8', '#FFF4D6'], fog: '#E8F3DA', fogNear: 120, fogFar: 520, ground: '#8DC26A', ground2: '#7AB35A',
+  bamboo: { look: { contrast: 1.05, sat: 1.08, gain: [1.0, 1.03, 0.95], lift: [0.002, 0.003, 0], vig: 0.25 }, sky: ['#9AD7E8', '#FFF4D6'], fog: '#E8F3DA', fogNear: 120, fogFar: 520, ground: '#8DC26A', ground2: '#7AB35A',
     road: '#C9B48F', road2: '#B8A07A', offroad: '#A9CF6E', curb: ['#FFFFFF', '#C8552B'], fence: '#C8552B', fence2: '#F2E2B8',
     sun: 2.4, hemi: 1.0, props: [['Bamboo', 1.0], ['Rock', 0.2], ['Flower', 0.3]], hills: '#6FA85A', particles: 'leaves', music: 1 },
-  cave: { sky: ['#1B1440', '#3B2A6E'], fog: '#2B2156', fogNear: 60, fogFar: 330, ground: '#3C3366', ground2: '#332B59',
+  cave: { look: { contrast: 1.1, sat: 1.18, gain: [0.98, 0.96, 1.08], lift: [0.004, 0.0, 0.01], vig: 0.38 }, sky: ['#1B1440', '#3B2A6E'], fog: '#2B2156', fogNear: 60, fogFar: 330, ground: '#3C3366', ground2: '#332B59',
     road: '#6E6488', road2: '#615879', offroad: '#4D4380', curb: ['#B6F3FF', '#7C5CFF'], fence: '#7C5CFF', fence2: '#B6F3FF',
     sun: 0.6, hemi: 0.55, props: [['GlowShroom', 0.8], ['Mushroom', 0.25], ['Rock', 0.3], ['Crystal', 0.15]], hills: '#2A2250', particles: 'fireflies', night: true, bloom: 0.8, music: 2 },
-  honey: { sky: ['#FFC86B', '#FFF1C9'], fog: '#FFE3A3', fogNear: 140, fogFar: 560, ground: '#E9B949', ground2: '#DCA93A',
+  honey: { look: { contrast: 1.05, sat: 1.1, gain: [1.05, 1.0, 0.9], lift: [0.004, 0.002, 0], vig: 0.25 }, sky: ['#FFC86B', '#FFF1C9'], fog: '#FFE3A3', fogNear: 140, fogFar: 560, ground: '#E9B949', ground2: '#DCA93A',
     road: '#C98B4E', road2: '#B87A40', offroad: '#F2C75C', curb: ['#FFFFFF', '#E8901E'], fence: '#FFC233', fence2: '#8A5A2B',
     sun: 2.6, hemi: 1.1, props: [['Honeycomb', 0.6], ['HoneyJar', 0.4], ['Flower', 0.5]], hills: '#D69A35', particles: 'pollen', music: 3 },
-  glacier: { sky: ['#8EC9F0', '#F2FBFF'], fog: '#E4F4FF', fogNear: 120, fogFar: 560, ground: '#F4FAFF', ground2: '#E2EEF8',
+  glacier: { look: { contrast: 1.04, sat: 1.0, gain: [0.97, 1.0, 1.06], lift: [0, 0.002, 0.006], vig: 0.2 }, sky: ['#8EC9F0', '#F2FBFF'], fog: '#E4F4FF', fogNear: 120, fogFar: 560, ground: '#F4FAFF', ground2: '#E2EEF8',
     road: '#A7B9CC', road2: '#97A9BD', offroad: '#E8F2FA', curb: ['#FFFFFF', '#4FA3E0'], fence: '#4FA3E0', fence2: '#FFFFFF',
     ice: '#BFE9FF', sun: 2.4, hemi: 1.2, props: [['Pine', 0.8], ['Crystal', 0.35], ['Rock', 0.2]], hills: '#DCEAF6', particles: 'snow', bloom: 0.2, music: 4 },
-  reef: { sky: ['#0B4F7A', '#3FC1D9'], fog: '#2A93B5', fogNear: 60, fogFar: 380, ground: '#E8D6A8', ground2: '#D9C590',
+  reef: { look: { contrast: 1.06, sat: 1.12, gain: [0.94, 1.02, 1.06], lift: [0, 0.004, 0.008], vig: 0.35 }, sky: ['#0B4F7A', '#3FC1D9'], fog: '#2A93B5', fogNear: 60, fogFar: 380, ground: '#E8D6A8', ground2: '#D9C590',
     road: '#7FB7C9', road2: '#6FA7B9', offroad: '#E3CF9C', curb: ['#FFFFFF', '#FF7A8A'], fence: '#FF7A8A', fence2: '#FFD447',
     sun: 1.8, hemi: 1.0, props: [['Coral', 0.7], ['Seaweed', 0.9], ['Rock', 0.25]], hills: '#1F7E9E', particles: 'bubbles', underwater: true, music: 5 },
-  clouds: { sky: ['#B8A6FF', '#FFE2F1'], fog: '#F6E8FF', fogNear: 160, fogFar: 700, ground: '#FFFFFF', ground2: '#F3E9FF',
+  clouds: { look: { contrast: 1.02, sat: 1.06, gain: [1.02, 0.99, 1.03], lift: [0.006, 0.004, 0.008], vig: 0.18 }, sky: ['#B8A6FF', '#FFE2F1'], fog: '#F6E8FF', fogNear: 160, fogFar: 700, ground: '#FFFFFF', ground2: '#F3E9FF',
     road: '#D7C8F2', road2: '#C9B8EA', offroad: '#FFFFFF', curb: ['#FFFFFF', '#B59CFF'], fence: '#FF8FA3', fence2: '#FFFFFF',
     sun: 2.4, hemi: 1.25, props: [['Cloud', 0.5], ['Tower', 0.08]], hills: '#FFFFFF', particles: 'sparkles', cloudGround: true, bloom: 0.25, music: 6 },
-  volcano: { sky: ['#5A1E2E', '#FF9A5A'], fog: '#C8604A', fogNear: 110, fogFar: 520, ground: '#4A3A3E', ground2: '#3C2E33',
+  volcano: { look: { contrast: 1.1, sat: 1.12, gain: [1.08, 0.97, 0.9], lift: [0.006, 0, 0], vig: 0.35 }, sky: ['#5A1E2E', '#FF9A5A'], fog: '#C8604A', fogNear: 110, fogFar: 520, ground: '#4A3A3E', ground2: '#3C2E33',
     road: '#7A6A6E', road2: '#6C5C60', offroad: '#8A4A2A', curb: ['#FFD447', '#FF4E1A'], fence: '#FF6A1A', fence2: '#2B2226',
     sun: 2.0, hemi: 0.85, props: [['Palm', 0.5], ['LavaRock', 0.45], ['Rock', 0.25]], hills: '#3A2B30', particles: 'embers', volcano: true, bloom: 0.65, music: 7 },
 };
