@@ -38,7 +38,7 @@ export function createChaseCamera(_ctx: RenderContext, opts: ChaseCameraOptions 
   let target: Kart | null = null;
   let mode: 'auto' | 'chase' | 'orbit' | 'finish' = 'auto';
   let shakeOn = opts.shake ?? savedShake();
-  const DIST = opts.distance ?? 6.4, HEIGHT = opts.height ?? 2.5, FOV = opts.baseFov ?? 64;
+  const DIST = opts.distance ?? 4.5, HEIGHT = opts.height ?? 2.0, FOV = opts.baseFov ?? 58;
 
   let first = true;
   const pos = new Vector3(), look = new Vector3();
@@ -125,7 +125,7 @@ export function createChaseCamera(_ctx: RenderContext, opts: ChaseCameraOptions 
       sideOff += ((k.drift.active ? -k.drift.dir * 0.9 : 0) - sideOff) * damp(3, dt);
 
       const speedN = Math.min(1.4, Math.abs(k.speed) / Math.max(1, k.topSpeed));
-      const dist = DIST + speedN * 1.1;
+      const dist = DIST + speedN * 0.6;
       const fx = Math.sin(yaw), fz = Math.cos(yaw);
       // Right vector (kart convention: +X is left, so right = (-fz, 0, fx)... in world: (−cos, 0, sin)).
       const rx = -fz, rz = fx;
@@ -207,7 +207,7 @@ export function createChaseCamera(_ctx: RenderContext, opts: ChaseCameraOptions 
       // FOV: opens with speed, kicks on boost.
       fovKick = Math.max(0, fovKick - dt * 1.6);
       const boosting = k.boost.time > 0 ? 1 : 0;
-      const targetFov = FOV + 12 * Math.min(1, speedN) + 6 * boosting + 6 * fovKick;
+      const targetFov = FOV + 8 * Math.min(1, speedN) + 6 * boosting + 6 * fovKick;
       fov += (targetFov - fov) * damp(4, dt);
       if (Math.abs(cam.fov - fov) > 0.01) { cam.fov = fov; cam.updateProjectionMatrix(); }
     },
