@@ -281,7 +281,7 @@ export async function createTrackView(track: TrackRuntime, ctx: RenderContext): 
   void hayMaterial;
 
   // scenery
-  const { batches, animated } = buildProps(t.props, ctx, root);
+  const { batches, animated } = buildProps(t.props, ctx, root, ctx.quality.tier === 'mobile' ? { heightAt: (x, z) => t.terrain.heightAt(x, z), reach: t.terrain.cell * 2 } : undefined);
   ctx.scene.add(root);
 
   let version = -1;

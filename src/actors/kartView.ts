@@ -256,7 +256,11 @@ export function createKartView(kart: Kart, ctx: RenderContext): View {
     body.scale.set(sxz * st.scale, sy * st.scale, sxz * st.scale);
 
     body.quaternion.setFromAxisAngle(AX, st.pitch);
-    _q2.setFromAxisAngle(AZ, st.lean);
+    // The body rolls about the centre of the ground contact, which would push the low-side
+    // wheels into the road. Keep the roll modest and lift the body so those wheels stay on it.
+    const roll = st.lean * 0.45;
+    const rollLift = Math.sin(Math.abs(roll)) * 0.62;
+    _q2.setFromAxisAngle(AZ, roll);
     body.quaternion.multiply(_q2);
 
     // visual spin for hits when the sim does not rotate the body itself (grey-box physics)
@@ -271,7 +275,7 @@ export function createKartView(kart: Kart, ctx: RenderContext): View {
         if (st.spinKind === 'tumble') { body.position.y = Math.sin(u * Math.PI) * 0.9; }
         body.quaternion.multiply(_q2);
       }
-    } else body.position.y = damp(body.position.y, 0, 10, dt);
+    } else body.position.y = damp(body.position.y, rollLift, 14, dt);
     // trick: barrel roll in the air
     if (st.trickT >= 0) {
       st.trickT += dt;

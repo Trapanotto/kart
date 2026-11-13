@@ -820,7 +820,14 @@ export class BuiltTrack implements TrackRuntime {
         x = F.pos.x; z = F.pos.z;
         yaw += Math.atan2(F.forward.x, F.forward.z);
       }
-      y = pp.y ?? this.groundAt(x, z) + (pp.dy ?? 0);
+      if (pp.y !== undefined) y = pp.y;
+      else {
+        // Seat on the lowest ground under the footprint so nothing floats on a slope.
+        const r = Math.max(1, typeof pp.solid === 'number' ? pp.solid : pp.solid ? Math.max(pp.solid[0], pp.solid[1]) : 1);
+        y = this.groundAt(x, z);
+        for (let a = 0; a < 8; a++) y = Math.min(y, this.groundAt(x + Math.cos(a * Math.PI / 4) * r, z + Math.sin(a * Math.PI / 4) * r));
+        y += (pp.dy ?? 0) - 0.05;
+      }
       if (pp.y !== undefined) y += pp.dy ?? 0;
       this.props.push({ name: pp.name, x, y, z, yaw, scale: (pp.scale ?? 1) * (pp.flip ? -1 : 1), tag: pp.tag, detail: false, keep: 0, dist: this.terrain.roadDistAt(x, z) });
       if (pp.tag) this.declareTag(pp.tag, true);

@@ -206,7 +206,16 @@ export interface PropBatch {
 }
 
 /** Instanced (or, for single animated props, cloned) scenery. */
-export function buildProps(props: PlacedProp[], ctx: RenderContext, parent: THREE.Object3D): { batches: PropBatch[]; animated: THREE.Object3D[] } {
+export function buildProps(propsIn: PlacedProp[], ctx: RenderContext, parent: THREE.Object3D, coarse?: { heightAt(x: number, z: number): number; reach: number }): { batches: PropBatch[]; animated: THREE.Object3D[] } {
+  // The coarse (mobile) terrain mesh takes the lowest height in a neighbourhood, so it lies
+  // below the height function on slopes and hilltops. Props standing on terrain follow it down.
+  const props = !coarse ? propsIn : propsIn.map((p) => {
+    const h = coarse.heightAt(p.x, p.z);
+    if (Math.abs(p.y - h) > 0.25) return p; // stands on a road or was placed by hand
+    let y = p.y;
+    for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) y = Math.min(y, coarse.heightAt(p.x + dx * coarse.reach, p.z + dz * coarse.reach));
+    return y < p.y ? { ...p, y } : p;
+  });
   const density = ctx.quality.density;
   const groups = new Map<string, PlacedProp[]>();
   const flipped: PlacedProp[] = [];
