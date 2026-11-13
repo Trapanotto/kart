@@ -147,6 +147,9 @@
 .tk-touch .b-brake { right: calc(var(--sar) + 1.4em + max(88px, 6.6em) + max(70px, 5.2em) * .3); bottom: calc(var(--sab) + .8em); width: max(56px, 4em); height: max(56px, 4em); }
 .tk-touch .b-gas { display: none; right: calc(var(--sar) + 1.4em); bottom: calc(var(--sab) + 1.6em + max(88px, 6.6em)); width: max(64px, 4.6em); height: max(64px, 4.6em); background: rgba(79, 209, 165, .55); }
 .tk-touch.manual .b-gas { display: grid; }
+/* Manual gas: the button held all race long takes the corner, drift moves above it. */
+.tk-touch.manual .b-gas { right: calc(var(--sar) + 1.4em); bottom: calc(var(--sab) + 1.4em); width: max(88px, 6.6em); height: max(88px, 6.6em); }
+.tk-touch.manual .b-drift { bottom: calc(var(--sab) + 1.6em + max(88px, 6.6em)); width: max(72px, 5.4em); height: max(72px, 5.4em); }
 .tk-touch .b-pause { right: calc(var(--sar) + 1.2em); top: calc(var(--sat) + 1em); width: max(48px, 3.4em); height: max(48px, 3.4em); border-radius: 1em; }
 .tk-touch .zones { display: none; }
 .tk-touch.zones .zones { display: block; }

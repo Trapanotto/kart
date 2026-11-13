@@ -45,7 +45,7 @@ export function loadingScreen(ctx: UiCtx, trackName: string): Screen & { progres
       const f = total > 0 ? Math.min(1, done / total) : 0;
       shown = Math.max(shown, f);
       bar.style.transform = `scaleX(${shown})`;
-      label.set(l ? `Lade ${l} …` : '');
+      label.set(`${l ? `Lade ${l} … ` : ''}${Math.round(shown * 100)} %`);
     },
     setName(n) {
       name.textContent = n;

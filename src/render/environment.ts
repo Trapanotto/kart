@@ -223,7 +223,8 @@ export function createLighting(renderer: () => WebGPURenderer, scene: Scene, cam
       sun.position.copy(sunDir).multiplyScalar(100);
       buildSun(); // re-derive biases for the new sun elevation (CSM clones the shadow per cascade)
 
-      hdrTex = d.hdr ? await loadHdr(d.hdr) : null;
+      // Phones get the 1k sky when it exists (a quarter of the download and upload).
+      hdrTex = d.hdr ? ((quality.tier === 'mobile' ? await loadHdr(`${d.hdr}_1k`) : null) ?? await loadHdr(d.hdr)) : null;
       if (hdrTex) {
         // The HDRI lights the scene; the visible sky stays procedural so photographed
         // trees and horizons do not clash with the stylised world.

@@ -12,10 +12,11 @@ export interface UiStore {
   lastChar: CharacterId | null;
   lastClass: string | null;
   touchInit: boolean;
+  touchGas: boolean;
 }
 
 const KEY = 'tk2.ui';
-const DEFAULTS: UiStore = { touchLayout: 'stick', hints: [], trophies: {}, pb: {}, lastChar: null, lastClass: null, touchInit: false };
+const DEFAULTS: UiStore = { touchLayout: 'stick', hints: [], trophies: {}, pb: {}, lastChar: null, lastClass: null, touchInit: false, touchGas: false };
 
 function load(): UiStore {
   try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(KEY) ?? '{}') }; } catch { return { ...DEFAULTS }; }

@@ -1,4 +1,6 @@
 // Application shell: owns the frame loop and wires modules together. Owner: lead.
+import { Group } from 'three';
+import type { Object3D } from 'three';
 import { createEventBus } from '../core/events';
 import { character, CHARACTERS, emptyInput, SPEED_CLASSES } from '../core/data';
 import { createEntityView } from '../core/entityViews';
@@ -51,6 +53,11 @@ export async function createApp(canvas: HTMLCanvasElement, uiRoot: HTMLElement):
   let acc = 0;
 
   const ctx = (): RenderContext => renderer.ctx;
+  let sizeW = -1, sizeH = -1;
+  function resize(): void {
+    sizeW = canvas.clientWidth; sizeH = canvas.clientHeight;
+    renderer.resize(Math.max(1, sizeW || innerWidth), Math.max(1, sizeH || innerHeight));
+  }
 
   const playerController: KartController = {
     update(kart) {
@@ -77,9 +84,17 @@ export async function createApp(canvas: HTMLCanvasElement, uiRoot: HTMLElement):
     try {
       endRace();
       const cfg: RaceConfig = { ...config, assists: config.assists ?? { autoThrottle: settings.autoThrottle, steerAssist: settings.steerAssist } };
-      events.emit('app:loading', { done: 0, total: 1, label: 'Strecke' });
+      // One overall progress value (0..100) across all loading stages.
+      const progress = async (pct: number, label: string) => {
+        events.emit('app:loading', { done: Math.round(pct), total: 100, label });
+        await new Promise((r) => setTimeout(r, 0)); // let the bar paint
+      };
+      await progress(2, 'Strecke');
       const track = await modules.loadTrack(cfg.trackId);
-      await assets.load(modules.raceAssets(cfg), (done, total) => events.emit('app:loading', { done, total, label: 'Modelle' }));
+      await progress(10, 'Figuren');
+      const assetNames = modules.raceAssets(cfg);
+      await assets.load(assetNames, (done, total) => events.emit('app:loading', { done: Math.round(10 + 35 * (done / Math.max(1, total))), total: 100, label: 'Figuren' }));
+      await progress(46, 'Physik');
       const physics = await modules.createPhysics(track, cfg);
       const items = modules.createItemSystem();
       const sim = new Sim({ config: cfg, track, physics, systems: [...(items ? [items] : []), modules.createRaceRules()], events });
@@ -103,14 +118,20 @@ export async function createApp(canvas: HTMLCanvasElement, uiRoot: HTMLElement):
           events.emit('app:raceEnded', { result });
         }),
       );
+      await progress(52, 'Himmel');
       await renderer.setEnvironment(track.meta.environment);
       renderer.bindSim(sim);
+      await progress(58, 'Landschaft');
       r.views.push(await modules.createTrackView(track, ctx()));
+      await progress(84, 'Karts');
       for (const k of sim.karts) r.views.push(modules.createKartView(k, ctx()));
       r.camera.setTarget(sim.player);
-      race = r;
       sim.start();
       sim.interpolate(1);
+      paused = true; // hold the sim while warming up
+      acc = 0;
+      race = r;
+      await prewarm(r, assetNames, progress);
       paused = false;
       acc = 0;
       events.emit('app:raceReady', { sim });
@@ -119,7 +140,44 @@ export async function createApp(canvas: HTMLCanvasElement, uiRoot: HTMLElement):
     }
   }
 
+  /**
+   * Draws the whole scene a few times behind the loading screen so shaders compile and
+   * textures and meshes reach the GPU now, instead of hitching mid-race when something
+   * first comes into view. Culling is off meanwhile so that everything is touched once.
+   */
+  async function prewarm(r: Race, assetNames: string[], progress: (pct: number, label: string) => Promise<void>): Promise<void> {
+    const c = ctx();
+    const p = r.sim.player.pos;
+    const extras = new Group();
+    const names = [...assetNames.filter((n) => n.startsWith('item.')), 'prop.sheep', 'prop.hay_bale'];
+    names.forEach((n, i) => {
+      if (!assets.has(n)) return;
+      const m = assets.model(n);
+      m.position.set(p.x + (i % 4) - 1.5, p.y + 2 + Math.floor(i / 4), p.z);
+      extras.add(m);
+    });
+    c.scene.add(extras);
+    const culled: Object3D[] = [];
+    c.scene.traverse((o) => { if (o.frustumCulled) { o.frustumCulled = false; culled.push(o); } });
+    const below = p.clone(); below.y -= 40;
+    for (const fx of ['burst', 'dust', 'splash', 'sparks', 'confetti', 'smoke', 'leaves', 'stars', 'break.hay', 'break.crate', 'pickup', 'shield.pop', 'honey.splat', 'zap']) c.vfx.spawn(fx, below);
+    try {
+      for (let i = 0; i < 4; i++) {
+        await progress(88 + i * 3, 'Shader');
+        frame(SIM_DT);
+        await new Promise((res) => setTimeout(res, 40));
+      }
+    } finally {
+      for (const o of culled) o.frustumCulled = true;
+      c.scene.remove(extras);
+    }
+    await progress(100, '');
+  }
+
   function frame(dt: number): void {
+    // Phones change the canvas size without a reliable resize event (rotation, browser bars).
+    if (canvas.clientWidth !== sizeW || canvas.clientHeight !== sizeH) resize();
+
     // Input: the first active source wins.
     let active = false;
     for (const s of sources) {
@@ -169,8 +227,8 @@ export async function createApp(canvas: HTMLCanvasElement, uiRoot: HTMLElement):
     inputOverride: null,
   };
 
-  const resize = () => renderer.resize(Math.max(1, canvas.clientWidth || innerWidth), Math.max(1, canvas.clientHeight || innerHeight));
   window.addEventListener('resize', resize);
+  window.addEventListener('orientationchange', resize);
   resize();
   document.addEventListener('visibilitychange', () => { if (document.hidden && race && race.sim.phase === 'racing') app.setPaused(true); });
 

@@ -53,12 +53,13 @@ export function createUI(app: App, uiRoot: HTMLElement): UiHandle {
   hudLayer.append(hud.el, touch.el);
   app.addInputSource(touch);
 
-  // First run on a touch device: auto-throttle on.
+  // Touch devices drive with a gas button by default; auto-throttle stays an option.
+  // One-time reset for devices that got auto-throttle switched on by an earlier version.
   let forced: boolean | null = null;
   let touchSeen = isTouchDevice();
-  if (touchSeen && !store.touchInit) {
-    store.touchInit = true; saveStore();
-    app.settings.autoThrottle = true;
+  if (touchSeen && !store.touchGas) {
+    store.touchGas = true; saveStore();
+    app.settings.autoThrottle = false;
     app.saveSettings();
   }
   touch.setLayout(store.touchLayout);

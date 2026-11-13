@@ -154,7 +154,8 @@ export class TouchControls implements InputSource {
     const zoneSteer = (this.has('right') ? 1 : 0) - (this.has('left') ? 1 : 0);
     out.steer = this.layout === 'zones' ? zoneSteer : this.steer;
     out.brake = this.has('brake') ? 1 : 0;
-    out.throttle = this.has('gas') || this.has('drift') || this.app.settings.autoThrottle ? (out.brake ? 0 : 1) : 0;
+    // Drift and item sit under the same thumb as gas, so holding them keeps the throttle open.
+    out.throttle = this.has('gas') || this.has('drift') || this.has('item') || this.app.settings.autoThrottle ? (out.brake ? 0 : 1) : 0;
     out.drift = this.has('drift');
     out.item = this.has('item');
     out.itemAim = this.has('item') ? this.itemAim : 0;
