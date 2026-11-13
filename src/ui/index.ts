@@ -42,7 +42,7 @@ export function createUI(app: App, uiRoot: HTMLElement): UiHandle {
   const root = h('div.tk-ui');
   const hudLayer = h('div.tk-layer');
   const screenLayer = h('div.tk-layer');
-  const rotate = h('div.tk-rotate', h('div.ph', { html: UI_ICONS.phone }), h('b', 'Bitte dreh dein Handy'), h('span', 'Trapanotto Kart spielt man quer.'));
+  const rotate = h('div.tk-rotate', h('div.ph', { html: UI_ICONS.phone }), h('b', 'Bitte dreh dein Handy'));
   root.append(hudLayer, screenLayer, rotate);
   uiRoot.appendChild(root);
 
