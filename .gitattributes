@@ -1,4 +1,9 @@
 * text=auto eol=lf
 *.glb binary
+*.hdr binary
 *.webp binary
 *.png binary
+*.wasm binary
+*.ogg binary
+*.mp3 binary
+*.woff2 binary

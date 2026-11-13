@@ -1,5 +1,6 @@
-.claude/
-__pycache__/
-*.blend1
-
+node_modules/
+dist/
 build/
+*.blend1
+.vite/
+.DS_Store
