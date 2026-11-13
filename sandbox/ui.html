@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>UI-Sandbox – Trapanotto Kart</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #10131c; touch-action: none; font-family: system-ui, sans-serif; }
+    #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+    #ui { position: fixed; inset: 0; pointer-events: none; }
+    #dev { position: fixed; left: 0; top: 0; bottom: 0; width: 290px; overflow-y: auto; background: rgba(16, 19, 28, .92); color: #dfe6f5; font-size: 12px; padding: 8px; z-index: 50; box-sizing: border-box; transition: transform .2s; }
+    #dev.hide { transform: translateX(-100%); }
+    #dev h4 { margin: 10px 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #8fa0c8; }
+    #dev button { margin: 2px; padding: 4px 7px; font-size: 11px; border-radius: 5px; border: 1px solid #3a4566; background: #222a40; color: #e8ecf8; cursor: pointer; }
+    #dev button:hover { background: #2f3a58; }
+    #dev pre { white-space: pre-wrap; font-size: 10px; color: #b8f0c8; max-height: 260px; overflow: auto; }
+    #devToggle { position: fixed; left: 4px; bottom: 4px; z-index: 60; padding: 4px 8px; font-size: 11px; border-radius: 5px; background: #222a40; color: #fff; border: 1px solid #3a4566; }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div id="ui"></div>
+  <div id="dev"></div>
+  <button id="devToggle">Dev</button>
+  <script type="module" src="./ui.ts"></script>
+</body>
+</html>

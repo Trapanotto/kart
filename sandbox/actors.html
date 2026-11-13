@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Actors sandbox</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #10131c; font: 12px/1.35 system-ui, sans-serif; color: #e8ecf5; }
+    #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+    #panel { position: fixed; left: 8px; top: 8px; width: 300px; max-height: calc(100% - 16px); overflow: auto; background: rgba(12, 16, 26, 0.85); border-radius: 10px; padding: 10px; box-sizing: border-box; }
+    #panel h3 { margin: 6px 0 6px; font-size: 13px; }
+    .row { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; align-items: center; }
+    button, select { font: inherit; background: #273047; color: #e8ecf5; border: 1px solid #3b4766; border-radius: 6px; padding: 3px 7px; cursor: pointer; }
+    button:hover { background: #33405f; }
+    button.on { background: #4a6cf7; border-color: #4a6cf7; }
+    #info { color: #aab3c8; white-space: pre-wrap; font-size: 11px; }
+    input[type=range] { width: 160px; }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div id="panel">
+    <h3>Actors sandbox</h3>
+    <div class="row"><button id="mShow" class="on">Schaufenster</button><button id="mDrive">Fahren</button></div>
+    <div id="showUI">
+      <div class="row">Fokus <select id="focus"><option value="-1">Alle</option></select> <button id="turn" class="on">Drehen</button></div>
+      <div class="row">Lenken <input id="steer" type="range" min="-1" max="1" step="0.05" value="0"></div>
+      <h3>Zustände</h3>
+      <div class="row" id="states"></div>
+      <h3>Einmalig</h3>
+      <div class="row" id="shots"></div>
+      <h3>Clips direkt</h3>
+      <div class="row" id="clips"></div>
+    </div>
+    <div id="driveUI" style="display:none">
+      <div class="row">Pfeiltasten / WASD, Leertaste Drift, E Item, Q zurückschauen</div>
+      <div class="row"><button id="auto" class="on">Autopilot</button><button id="restart">Neustart</button><button id="phys">Physik: Stub</button></div>
+    </div>
+    <h3>Grafik</h3>
+    <div class="row"><select id="tier"><option>high</option><option selected>medium</option><option>mobile</option></select></div>
+    <div id="info"></div>
+  </div>
+  <script type="module" src="./actors.ts"></script>
+</body>
+</html>

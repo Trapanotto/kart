@@ -10,6 +10,18 @@ import { createKeyboardInput, createStubAI, createStubRules } from '../stubs/stu
 import { createStubAssets, createStubCamera, createStubEntityView, createStubKartView, createStubRenderer, createStubTrackView } from '../stubs/stubRender';
 import { createTestTrack } from '../stubs/testTrack';
 import { setFallbackEntityView } from '../core/entityViews';
+import { createRaceRules } from '../race'; // [gameplay]
+import { createItemSystem } from '../items'; // [gameplay]
+import { createAI } from '../ai'; // [gameplay]
+import { createPhysics } from '../physics'; // [physics]
+import { createInputSources } from '../input'; // [physics]
+import { createChaseCamera } from '../camera'; // [physics]
+import { createRenderer } from '../render/renderer'; // [render]
+import { createAssets, createKartView, raceAssets } from '../actors'; // [actors]
+import { loadTrack, trackList } from '../track'; // [track]
+import { createTrackView } from '../track/view/trackView'; // [track]
+import { createUI } from '../ui'; // [ui]
+import { createAudio } from '../audio'; // [ui]
 
 setFallbackEntityView(createStubEntityView);
 
@@ -42,24 +54,24 @@ const testTrack = createTestTrack();
 
 export const modules: Modules = {
   // [physics]
-  createPhysics: async () => createStubPhysics(),
-  createInputSources: () => [createKeyboardInput()],
-  createCameraRig: (ctx) => createStubCamera(ctx),
+  createPhysics: (track, config) => createPhysics(track, config),
+  createInputSources: () => createInputSources(),
+  createCameraRig: (ctx) => createChaseCamera(ctx),
   // [track]
-  trackList: () => [testTrack.meta],
-  loadTrack: async () => createTestTrack(),
-  createTrackView: (track, ctx) => createStubTrackView(track, ctx),
+  trackList: () => trackList(),
+  loadTrack: (id) => loadTrack(id),
+  createTrackView: (track, ctx) => createTrackView(track, ctx),
   // [render]
-  createRenderer: (canvas, quality, assets) => createStubRenderer(canvas, quality, assets),
+  createRenderer: (canvas, quality, assets) => createRenderer(canvas, quality, assets),
   // [actors]
-  createAssets: () => createStubAssets(),
-  raceAssets: () => [],
-  createKartView: (kart, ctx) => createStubKartView(kart, ctx),
+  createAssets: () => createAssets(),
+  raceAssets: (config) => raceAssets(config),
+  createKartView: (kart, ctx) => createKartView(kart, ctx),
   // [gameplay]
-  createRaceRules: () => createStubRules(),
-  createItemSystem: () => null,
-  createAI: () => createStubAI(),
+  createRaceRules: () => createRaceRules(),
+  createItemSystem: () => createItemSystem(),
+  createAI: (kart, sim) => createAI(kart, sim),
   // [ui]
-  createUI: () => null,
-  createAudio: () => null,
+  createUI: (app, root) => createUI(app, root),
+  createAudio: (app) => createAudio(app),
 };

@@ -1,0 +1,955 @@
+{
+ "balloon_arch": {
+  "bytes": 81436,
+  "file": "prop.balloon_arch.glb",
+  "materials": [
+   "M_balloon_arch_gloss"
+  ],
+  "max_gltf": [
+   10.85,
+   8.83,
+   0.92
+  ],
+  "min_gltf": [
+   -10.85,
+   -0.57,
+   -0.92
+  ],
+  "nodes": [
+   "balloon_arch"
+  ],
+  "size_m": [
+   21.71,
+   9.4,
+   1.84
+  ],
+  "tris": 4608
+ },
+ "barn": {
+  "bytes": 123796,
+  "file": "prop.barn.glb",
+  "materials": [
+   "M_barn"
+  ],
+  "max_gltf": [
+   6.88,
+   14.7,
+   16.55
+  ],
+  "min_gltf": [
+   -6.88,
+   0.0,
+   -16.55
+  ],
+  "nodes": [
+   "barn",
+   "door_l",
+   "door_r"
+  ],
+  "size_m": [
+   13.76,
+   14.7,
+   33.1
+  ],
+  "tris": 7396
+ },
+ "barn.lod1": {
+  "bytes": 19676,
+  "file": "prop.barn.lod1.glb",
+  "materials": [
+   "M_barn"
+  ],
+  "max_gltf": [
+   6.88,
+   14.7,
+   16.0
+  ],
+  "min_gltf": [
+   -6.88,
+   0.0,
+   -16.0
+  ],
+  "nodes": [
+   "barn",
+   "door_l",
+   "door_r"
+  ],
+  "size_m": [
+   13.76,
+   14.7,
+   32.0
+  ],
+  "tris": 1076
+ },
+ "boost_pad": {
+  "bytes": 6816,
+  "file": "prop.boost_pad.glb",
+  "materials": [
+   "M_boost_pad",
+   "M_boost_pad_emit"
+  ],
+  "max_gltf": [
+   2.0,
+   0.08,
+   3.0
+  ],
+  "min_gltf": [
+   -2.0,
+   0.0,
+   -3.0
+  ],
+  "nodes": [
+   "boost_pad"
+  ],
+  "size_m": [
+   4.0,
+   0.08,
+   6.0
+  ],
+  "tris": 280
+ },
+ "bridge_wood": {
+  "bytes": 62872,
+  "file": "prop.bridge_wood.glb",
+  "materials": [
+   "M_bridge_wood"
+  ],
+  "max_gltf": [
+   9.38,
+   1.65,
+   12.1
+  ],
+  "min_gltf": [
+   -9.38,
+   -5.6,
+   -12.1
+  ],
+  "nodes": [
+   "bridge_wood",
+   "deck",
+   "railing_l",
+   "railing_r",
+   "supports"
+  ],
+  "size_m": [
+   18.76,
+   7.25,
+   24.2
+  ],
+  "tris": 3760
+ },
+ "bush": {
+  "bytes": 15880,
+  "file": "prop.bush.glb",
+  "materials": [
+   "M_bush_foliage"
+  ],
+  "max_gltf": [
+   1.2,
+   1.37,
+   0.98
+  ],
+  "min_gltf": [
+   -1.0,
+   -0.01,
+   -1.02
+  ],
+  "nodes": [
+   "bush"
+  ],
+  "size_m": [
+   2.2,
+   1.38,
+   2.0
+  ],
+  "tris": 380
+ },
+ "crate": {
+  "bytes": 8360,
+  "file": "prop.crate.glb",
+  "materials": [
+   "M_crate"
+  ],
+  "max_gltf": [
+   0.53,
+   1.02,
+   0.52
+  ],
+  "min_gltf": [
+   -0.52,
+   0.0,
+   -0.53
+  ],
+  "nodes": [
+   "crate"
+  ],
+  "size_m": [
+   1.05,
+   1.02,
+   1.05
+  ],
+  "tris": 696
+ },
+ "farmhouse": {
+  "bytes": 55532,
+  "file": "prop.farmhouse.glb",
+  "materials": [
+   "M_farmhouse"
+  ],
+  "max_gltf": [
+   6.4,
+   10.9,
+   6.05
+  ],
+  "min_gltf": [
+   -5.43,
+   -0.0,
+   -5.77
+  ],
+  "nodes": [
+   "farmhouse"
+  ],
+  "size_m": [
+   11.83,
+   10.9,
+   11.82
+  ],
+  "tris": 3436
+ },
+ "farmhouse.lod1": {
+  "bytes": 17468,
+  "file": "prop.farmhouse.lod1.glb",
+  "materials": [
+   "M_farmhouse"
+  ],
+  "max_gltf": [
+   5.47,
+   10.9,
+   6.05
+  ],
+  "min_gltf": [
+   -5.47,
+   0.0,
+   -5.77
+  ],
+  "nodes": [
+   "farmhouse"
+  ],
+  "size_m": [
+   10.95,
+   10.9,
+   11.82
+  ],
+  "tris": 812
+ },
+ "fence_wood": {
+  "bytes": 8432,
+  "file": "prop.fence_wood.glb",
+  "materials": [
+   "M_fence_wood"
+  ],
+  "max_gltf": [
+   2.09,
+   1.21,
+   0.17
+  ],
+  "min_gltf": [
+   -2.1,
+   -0.05,
+   -0.1
+  ],
+  "nodes": [
+   "fence_wood",
+   "end_post"
+  ],
+  "size_m": [
+   4.19,
+   1.26,
+   0.26
+  ],
+  "tris": 248
+ },
+ "flower_patch": {
+  "bytes": 5064,
+  "file": "prop.flower_patch.glb",
+  "materials": [
+   "M_flower_patch_foliage"
+  ],
+  "max_gltf": [
+   0.35,
+   0.32,
+   0.38
+  ],
+  "min_gltf": [
+   -0.25,
+   0.0,
+   -0.31
+  ],
+  "nodes": [
+   "flower_patch"
+  ],
+  "size_m": [
+   0.6,
+   0.32,
+   0.69
+  ],
+  "tris": 86
+ },
+ "grandstand": {
+  "bytes": 135428,
+  "file": "prop.grandstand.glb",
+  "materials": [
+   "M_grandstand"
+  ],
+  "max_gltf": [
+   9.04,
+   8.7,
+   2.02
+  ],
+  "min_gltf": [
+   -8.7,
+   0.0,
+   -5.36
+  ],
+  "nodes": [
+   "grandstand"
+  ],
+  "size_m": [
+   17.74,
+   8.7,
+   7.37
+  ],
+  "tris": 6094
+ },
+ "grandstand.lod1": {
+  "bytes": 26528,
+  "file": "prop.grandstand.lod1.glb",
+  "materials": [
+   "M_grandstand"
+  ],
+  "max_gltf": [
+   9.04,
+   8.7,
+   2.02
+  ],
+  "min_gltf": [
+   -8.7,
+   0.0,
+   -5.36
+  ],
+  "nodes": [
+   "grandstand"
+  ],
+  "size_m": [
+   17.74,
+   8.7,
+   7.37
+  ],
+  "tris": 1836
+ },
+ "grass_tuft": {
+  "bytes": 3204,
+  "file": "prop.grass_tuft.glb",
+  "materials": [
+   "M_grass_tuft_foliage"
+  ],
+  "max_gltf": [
+   0.3,
+   0.5,
+   0.31
+  ],
+  "min_gltf": [
+   -0.27,
+   0.0,
+   -0.3
+  ],
+  "nodes": [
+   "grass_tuft"
+  ],
+  "size_m": [
+   0.57,
+   0.5,
+   0.61
+  ],
+  "tris": 48
+ },
+ "hay_bale": {
+  "bytes": 29108,
+  "file": "prop.hay_bale.glb",
+  "materials": [
+   "M_hay_bale"
+  ],
+  "max_gltf": [
+   0.67,
+   1.57,
+   0.88
+  ],
+  "min_gltf": [
+   -0.69,
+   -0.05,
+   -0.77
+  ],
+  "nodes": [
+   "hay_bale",
+   "roll"
+  ],
+  "size_m": [
+   1.35,
+   1.62,
+   1.65
+  ],
+  "tris": 1020
+ },
+ "hay_stack": {
+  "bytes": 27472,
+  "file": "prop.hay_stack.glb",
+  "materials": [
+   "M_hay_stack"
+  ],
+  "max_gltf": [
+   1.74,
+   3.5,
+   1.65
+  ],
+  "min_gltf": [
+   -1.7,
+   -0.28,
+   -1.74
+  ],
+  "nodes": [
+   "hay_stack"
+  ],
+  "size_m": [
+   3.45,
+   3.78,
+   3.39
+  ],
+  "tris": 830
+ },
+ "hedge": {
+  "bytes": 17108,
+  "file": "prop.hedge.glb",
+  "materials": [
+   "M_hedge_foliage"
+  ],
+  "max_gltf": [
+   2.06,
+   1.84,
+   0.74
+  ],
+  "min_gltf": [
+   -2.03,
+   0.01,
+   -0.74
+  ],
+  "nodes": [
+   "hedge"
+  ],
+  "size_m": [
+   4.09,
+   1.82,
+   1.49
+  ],
+  "tris": 408
+ },
+ "ramp": {
+  "bytes": 13412,
+  "file": "prop.ramp.glb",
+  "materials": [
+   "M_ramp"
+  ],
+  "max_gltf": [
+   5.59,
+   2.6,
+   3.09
+  ],
+  "min_gltf": [
+   -5.59,
+   -0.1,
+   -3.09
+  ],
+  "nodes": [
+   "ramp"
+  ],
+  "size_m": [
+   11.18,
+   2.7,
+   6.18
+  ],
+  "tris": 692
+ },
+ "rock_a": {
+  "bytes": 8024,
+  "file": "prop.rock_a.glb",
+  "materials": [
+   "M_rock_a"
+  ],
+  "max_gltf": [
+   1.57,
+   1.37,
+   1.09
+  ],
+  "min_gltf": [
+   -1.58,
+   -0.12,
+   -1.18
+  ],
+  "nodes": [
+   "rock_a"
+  ],
+  "size_m": [
+   3.14,
+   1.49,
+   2.27
+  ],
+  "tris": 260
+ },
+ "rock_b": {
+  "bytes": 8856,
+  "file": "prop.rock_b.glb",
+  "materials": [
+   "M_rock_b"
+  ],
+  "max_gltf": [
+   0.8,
+   0.59,
+   0.73
+  ],
+  "min_gltf": [
+   -0.77,
+   -0.12,
+   -0.6
+  ],
+  "nodes": [
+   "rock_b"
+  ],
+  "size_m": [
+   1.56,
+   0.71,
+   1.33
+  ],
+  "tris": 260
+ },
+ "scarecrow": {
+  "bytes": 26924,
+  "file": "prop.scarecrow.glb",
+  "materials": [
+   "M_scarecrow"
+  ],
+  "max_gltf": [
+   1.08,
+   2.4,
+   0.45
+  ],
+  "min_gltf": [
+   -1.08,
+   -0.1,
+   -0.46
+  ],
+  "nodes": [
+   "scarecrow"
+  ],
+  "size_m": [
+   2.16,
+   2.5,
+   0.91
+  ],
+  "tris": 1012
+ },
+ "sheep": {
+  "bytes": 48628,
+  "file": "prop.sheep.glb",
+  "materials": [
+   "M_sheep"
+  ],
+  "max_gltf": [
+   0.46,
+   1.05,
+   0.86
+  ],
+  "min_gltf": [
+   -0.45,
+   0.0,
+   -0.56
+  ],
+  "nodes": [
+   "sheep",
+   "head",
+   "legs"
+  ],
+  "size_m": [
+   0.91,
+   1.05,
+   1.42
+  ],
+  "tris": 1520
+ },
+ "sign_arrow": {
+  "bytes": 5448,
+  "file": "prop.sign_arrow.glb",
+  "materials": [
+   "M_sign_arrow"
+  ],
+  "max_gltf": [
+   1.2,
+   1.8,
+   0.1
+  ],
+  "min_gltf": [
+   -1.2,
+   -0.1,
+   -0.14
+  ],
+  "nodes": [
+   "sign_arrow"
+  ],
+  "size_m": [
+   2.4,
+   1.9,
+   0.24
+  ],
+  "tris": 204
+ },
+ "silo": {
+  "bytes": 54376,
+  "file": "prop.silo.glb",
+  "materials": [
+   "M_silo"
+  ],
+  "max_gltf": [
+   3.12,
+   13.4,
+   3.45
+  ],
+  "min_gltf": [
+   -2.55,
+   0.0,
+   -2.55
+  ],
+  "nodes": [
+   "silo"
+  ],
+  "size_m": [
+   5.67,
+   13.4,
+   6.0
+  ],
+  "tris": 2746
+ },
+ "silo.lod1": {
+  "bytes": 6864,
+  "file": "prop.silo.lod1.glb",
+  "materials": [
+   "M_silo"
+  ],
+  "max_gltf": [
+   3.12,
+   13.2,
+   3.45
+  ],
+  "min_gltf": [
+   -2.55,
+   0.0,
+   -2.43
+  ],
+  "nodes": [
+   "silo"
+  ],
+  "size_m": [
+   5.67,
+   13.2,
+   5.87
+  ],
+  "tris": 254
+ },
+ "start_gate": {
+  "bytes": 26180,
+  "file": "prop.start_gate.glb",
+  "materials": [
+   "M_start_gate",
+   "M_start_gate_banner"
+  ],
+  "max_gltf": [
+   11.25,
+   11.3,
+   0.8
+  ],
+  "min_gltf": [
+   -10.8,
+   0.0,
+   -0.8
+  ],
+  "nodes": [
+   "start_gate",
+   "banner"
+  ],
+  "size_m": [
+   22.05,
+   11.3,
+   1.6
+  ],
+  "tris": 1356
+ },
+ "tractor": {
+  "bytes": 53768,
+  "file": "prop.tractor.glb",
+  "materials": [
+   "M_tractor"
+  ],
+  "max_gltf": [
+   1.24,
+   2.93,
+   1.92
+  ],
+  "min_gltf": [
+   -1.24,
+   -0.04,
+   -1.71
+  ],
+  "nodes": [
+   "tractor"
+  ],
+  "size_m": [
+   2.48,
+   2.96,
+   3.63
+  ],
+  "tris": 2428
+ },
+ "tree_apple": {
+  "bytes": 84916,
+  "file": "prop.tree_apple.glb",
+  "materials": [
+   "M_tree_apple_foliage"
+  ],
+  "max_gltf": [
+   2.78,
+   6.17,
+   2.57
+  ],
+  "min_gltf": [
+   -2.52,
+   -0.14,
+   -2.45
+  ],
+  "nodes": [
+   "tree_apple"
+  ],
+  "size_m": [
+   5.3,
+   6.31,
+   5.03
+  ],
+  "tris": 2509
+ },
+ "tree_apple.lod1": {
+  "bytes": 37680,
+  "file": "prop.tree_apple.lod1.glb",
+  "materials": [
+   "M_tree_apple_foliage"
+  ],
+  "max_gltf": [
+   2.55,
+   6.21,
+   2.52
+  ],
+  "min_gltf": [
+   -2.76,
+   -0.14,
+   -2.53
+  ],
+  "nodes": [
+   "tree_apple"
+  ],
+  "size_m": [
+   5.31,
+   6.35,
+   5.05
+  ],
+  "tris": 1034
+ },
+ "tree_birch": {
+  "bytes": 65976,
+  "file": "prop.tree_birch.glb",
+  "materials": [
+   "M_tree_birch_foliage"
+  ],
+  "max_gltf": [
+   1.96,
+   10.24,
+   1.58
+  ],
+  "min_gltf": [
+   -1.71,
+   -0.11,
+   -1.52
+  ],
+  "nodes": [
+   "tree_birch"
+  ],
+  "size_m": [
+   3.67,
+   10.35,
+   3.11
+  ],
+  "tris": 1702
+ },
+ "tree_birch.lod1": {
+  "bytes": 20120,
+  "file": "prop.tree_birch.lod1.glb",
+  "materials": [
+   "M_tree_birch_foliage"
+  ],
+  "max_gltf": [
+   1.84,
+   10.1,
+   1.45
+  ],
+  "min_gltf": [
+   -1.64,
+   -0.11,
+   -1.59
+  ],
+  "nodes": [
+   "tree_birch"
+  ],
+  "size_m": [
+   3.49,
+   10.21,
+   3.04
+  ],
+  "tris": 500
+ },
+ "tree_oak": {
+  "bytes": 76520,
+  "file": "prop.tree_oak.glb",
+  "materials": [
+   "M_tree_oak_foliage"
+  ],
+  "max_gltf": [
+   3.41,
+   8.01,
+   2.92
+  ],
+  "min_gltf": [
+   -3.11,
+   -0.13,
+   -3.02
+  ],
+  "nodes": [
+   "tree_oak"
+  ],
+  "size_m": [
+   6.52,
+   8.14,
+   5.94
+  ],
+  "tris": 2271
+ },
+ "tree_oak.lod1": {
+  "bytes": 23224,
+  "file": "prop.tree_oak.lod1.glb",
+  "materials": [
+   "M_tree_oak_foliage"
+  ],
+  "max_gltf": [
+   3.13,
+   8.11,
+   3.25
+  ],
+  "min_gltf": [
+   -3.1,
+   -0.13,
+   -3.08
+  ],
+  "nodes": [
+   "tree_oak"
+  ],
+  "size_m": [
+   6.23,
+   8.24,
+   6.33
+  ],
+  "tris": 674
+ },
+ "well": {
+  "bytes": 34136,
+  "file": "prop.well.glb",
+  "materials": [
+   "M_well"
+  ],
+  "max_gltf": [
+   1.42,
+   3.09,
+   1.17
+  ],
+  "min_gltf": [
+   -1.3,
+   0.0,
+   -1.17
+  ],
+  "nodes": [
+   "well"
+  ],
+  "size_m": [
+   2.72,
+   3.09,
+   2.34
+  ],
+  "tris": 1628
+ },
+ "windmill": {
+  "bytes": 51264,
+  "file": "prop.windmill.glb",
+  "materials": [
+   "M_windmill"
+  ],
+  "max_gltf": [
+   7.61,
+   18.91,
+   4.2
+  ],
+  "min_gltf": [
+   -7.61,
+   0.0,
+   -5.41
+  ],
+  "nodes": [
+   "windmill",
+   "blades"
+  ],
+  "size_m": [
+   15.21,
+   18.91,
+   9.61
+  ],
+  "tris": 2720
+ },
+ "windmill.lod1": {
+  "bytes": 26412,
+  "file": "prop.windmill.lod1.glb",
+  "materials": [
+   "M_windmill"
+  ],
+  "max_gltf": [
+   7.61,
+   18.91,
+   3.97
+  ],
+  "min_gltf": [
+   -7.61,
+   0.0,
+   -5.41
+  ],
+  "nodes": [
+   "windmill",
+   "blades"
+  ],
+  "size_m": [
+   15.21,
+   18.91,
+   9.39
+  ],
+  "tris": 1080
+ }
+}

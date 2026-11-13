@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gameplay sandbox</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #10131c; font: 12px/1.35 system-ui, sans-serif; color: #e8ecf5; }
+    #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+    #map { position: fixed; right: 8px; bottom: 8px; width: 420px; height: 420px; background: rgba(12, 16, 26, 0.78); border-radius: 10px; }
+    #panel { position: fixed; left: 8px; top: 8px; width: 300px; max-height: calc(100% - 16px); overflow: auto; background: rgba(12, 16, 26, 0.85); border-radius: 10px; padding: 10px; box-sizing: border-box; }
+    #panel h3 { margin: 4px 0 6px; font-size: 13px; }
+    #panel .row { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; align-items: center; }
+    button, select, input { font: inherit; background: #273047; color: #e8ecf5; border: 1px solid #3b4766; border-radius: 6px; padding: 3px 7px; cursor: pointer; }
+    button:hover { background: #33405f; }
+    button.on { background: #4a6cf7; border-color: #4a6cf7; }
+    #order { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    #order td { padding: 1px 3px; white-space: nowrap; }
+    #order tr.sel { background: #2b3656; }
+    #status { color: #ffd447; }
+    #log { height: 110px; overflow: auto; font-size: 11px; color: #aab3c8; white-space: pre-wrap; }
+    @media (max-width: 700px) { #map { width: 200px; height: 200px; } #panel { width: 220px; } }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <canvas id="map" width="840" height="840"></canvas>
+  <div id="panel">
+    <h3>Gameplay sandbox <span id="status"></span></h3>
+    <div class="row">
+      <button id="restart">Neustart</button> Seed <input id="seed" type="number" value="1" style="width:56px">
+      Runden <input id="laps" type="number" value="3" min="1" max="9" style="width:40px">
+    </div>
+    <div class="row">
+      <select id="mode"><option value="race">Rennen</option><option value="timetrial">Zeitfahren</option></select>
+      <select id="cls"><option value="0">Gemütlich</option><option value="1" selected>Flott</option><option value="2">Turbo</option></select>
+    </div>
+    <div class="row" id="speeds"></div>
+    <div class="row">
+      <button id="drive">Selbst fahren (WASD, E Item, S+E zurück)</button>
+      <button id="cam">Kamera: Kart</button>
+    </div>
+    <h3>Item geben</h3>
+    <div class="row"><select id="kart"></select><select id="item"></select></div>
+    <div class="row">
+      <button id="give">Geben</button>
+      <button id="fire0">Benutzen</button>
+      <button id="fireF">Nach vorn</button>
+      <button id="fireB">Nach hinten</button>
+      <button id="hold">Halten</button>
+    </div>
+    <div class="row"><button id="giveAll">Allen ein Zufallsitem</button><button id="giveAllSame">Allen dieses Item</button></div>
+    <h3>Rangliste</h3>
+    <table id="order"></table>
+    <h3>Ereignisse</h3>
+    <div id="log"></div>
+  </div>
+  <script type="module" src="./gameplay.ts"></script>
+</body>
+</html>
