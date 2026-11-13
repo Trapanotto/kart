@@ -12,6 +12,7 @@ import {
 import {
   backdropGeometry, barrierBatches, BoxBatch, deckGeometry, markingsGeometry, padGeometry, patchGeometry, rampGeometry, roadGeometry,
   shoulderGeometry, terrainGeometry, waterGeometry,
+  COARSE_FAR,
 } from './meshes';
 import { buildProps, LOD_PROPS, mat, placeholder, tileAlong } from './props';
 
@@ -281,7 +282,7 @@ export async function createTrackView(track: TrackRuntime, ctx: RenderContext): 
   void hayMaterial;
 
   // scenery
-  const { batches, animated } = buildProps(t.props, ctx, root, ctx.quality.tier === 'mobile' ? { heightAt: (x, z) => t.terrain.heightAt(x, z), reach: t.terrain.cell * 2 } : undefined);
+  const { batches, animated } = buildProps(t.props, ctx, root, ctx.quality.tier === 'mobile' ? { heightAt: (x, z) => t.terrain.heightAt(x, z), reach: t.terrain.cell * 2, far: COARSE_FAR + 4 } : undefined);
   ctx.scene.add(root);
 
   let version = -1;

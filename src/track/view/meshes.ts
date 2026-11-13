@@ -169,6 +169,9 @@ export function terrainGeometry(t: BuiltTrack, step = 1): THREE.BufferGeometry {
  * fine vertices around it, so the coarse surface never rises through a road. The border vertices
  * keep their exact height so the backdrop still stitches.
  */
+/** Road distance band (m) over which the coarse terrain blends from "lowest nearby" to exact. */
+export const COARSE_NEAR = 8, COARSE_FAR = 16;
+
 function coarseTerrain(t: BuiltTrack, step: number): THREE.BufferGeometry {
   const T = t.terrain;
   const g = new Geo();
@@ -178,15 +181,22 @@ function coarseTerrain(t: BuiltTrack, step: number): THREE.BufferGeometry {
   for (let j = 0; j < T.nz; j += step) zs.push(j);
   if (zs[zs.length - 1] !== T.nz - 1) zs.push(T.nz - 1);
   for (const j of zs) for (const i of xs) {
-    let h = T.h[j * T.nx + i];
+    const exact = T.h[j * T.nx + i];
+    let h = exact;
+    const d = T.roadDist[j * T.nx + i];
     const border = i === 0 || j === 0 || i === T.nx - 1 || j === T.nz - 1;
-    if (!border) for (let dj = -step; dj <= step; dj++) for (let di = -step; di <= step; di++) {
-      const ii = i + di, jj = j + dj;
-      if (ii < 0 || jj < 0 || ii >= T.nx || jj >= T.nz) continue;
-      h = Math.min(h, T.h[jj * T.nx + ii]);
+    // Only near a road does the surface need to stay below the fine terrain; everywhere else
+    // the true height keeps hills in shape and scenery on the ground.
+    const nearRoad = 1 - smooth(COARSE_NEAR, COARSE_FAR, d);
+    if (!border && nearRoad > 0) {
+      for (let dj = -step; dj <= step; dj++) for (let di = -step; di <= step; di++) {
+        const ii = i + di, jj = j + dj;
+        if (ii < 0 || jj < 0 || ii >= T.nx || jj >= T.nz) continue;
+        h = Math.min(h, T.h[jj * T.nx + ii]);
+      }
+      h = exact + (h - exact) * nearRoad;
     }
     const x = T.x0 + i * T.cell, z = T.z0 + j * T.cell;
-    const d = T.roadDist[j * T.nx + i];
     const field = Math.max(0, ...(T.def.patches ?? []).filter((p) => p.look === 'field').map((p) => patchWeight(p, x, z)));
     const gravel = Math.max(0, ...(T.def.patches ?? []).filter((p) => p.look === 'gravel' || p.look === 'sand').map((p) => patchWeight(p, x, z)));
     g.vert([x, h, z], { blend: [0.5 * (1 - smooth(3, 9, d)), field, 0.85 * (1 - smooth(-1, 2.5, T.waterDist(x, z))), gravel] });
