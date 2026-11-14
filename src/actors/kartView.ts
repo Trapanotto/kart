@@ -1,6 +1,7 @@
 // Kart + driver view: wheels, suspension, body lean, squash/stretch, animation state machine,
 // facial expressions and fur. Reads sim state only. Owner: actors.
 import * as THREE from 'three/webgpu';
+import { float, length, smoothstep, uniform, uv, vec2 } from 'three/tsl';
 import type { HitKind, Kart, RenderContext, View } from '../core/types';
 import { addFurShells, furMaterial, glossMaterial } from './fur';
 
@@ -23,7 +24,28 @@ function damp(cur: number, target: number, rate: number, dt: number): number {
   return cur + (target - cur) * (1 - Math.exp(-rate * dt));
 }
 
-interface WheelRig { node: THREE.Object3D; base: THREE.Vector3; baseQ: THREE.Quaternion; offset: number; rest: number; restInit: boolean }
+/** Tyre radius the physics uses for its wheel centres (PHYS.wheelRadius). */
+const SIM_WHEEL_R = 0.3;
+/** Height of the axis the chassis rolls about, and how much of the sim's lean it shows. */
+const ROLL_PIVOT_Y = 0.3, ROLL_GAIN = 0.2;
+
+/** Soft dark patch under the kart: ties it to the road where the sun shadow is faint or absent. */
+let contactGeo: THREE.PlaneGeometry | null = null;
+function contactShadow(): { mesh: THREE.Mesh; strength: { value: number } } {
+  contactGeo ??= new THREE.PlaneGeometry(1.75, 2.45).rotateX(-Math.PI / 2);
+  const strength = uniform(1);
+  const mat = new THREE.MeshBasicNodeMaterial({ transparent: true, depthWrite: false, fog: false });
+  mat.colorNode = float(0);
+  const d = length(uv().sub(0.5).mul(vec2(2, 2)));
+  mat.opacityNode = smoothstep(1, 0.35, d).mul(0.5).mul(strength);
+  mat.polygonOffset = true; mat.polygonOffsetFactor = -2; mat.polygonOffsetUnits = -2;
+  const mesh = new THREE.Mesh(contactGeo, mat);
+  mesh.position.y = 0.03;
+  mesh.renderOrder = 1;
+  return { mesh, strength };
+}
+
+interface WheelRig { node: THREE.Object3D; base: THREE.Vector3; baseQ: THREE.Quaternion; offset: number; bottom: number }
 interface Face { mesh: THREE.Mesh; blink: number; happy: number; hurt: number }
 
 export function createKartView(kart: Kart, ctx: RenderContext): View {
@@ -39,8 +61,18 @@ export function createKartView(kart: Kart, ctx: RenderContext): View {
   const find = (n: string) => kartObj.getObjectByName(n) ?? null;
   const wheels: (WheelRig | null)[] = WHEELS.map((n) => {
     const node = find(n);
-    return node ? { node, base: node.position.clone(), baseQ: node.quaternion.clone(), offset: 0, rest: 0, restInit: false } : null;
+    if (!node) return null;
+    // lowest point of the tyre in kart space, so it can be set down exactly on the road
+    const bottom = new THREE.Box3().setFromObject(node).min.y;
+    return { node, base: node.position.clone(), baseQ: node.quaternion.clone(), offset: 0, bottom };
   });
+  // Everything except the wheels sits in a chassis group: it pitches and rolls on the suspension
+  // while the wheels stay planted on the road.
+  const chassis = new THREE.Group();
+  chassis.name = 'chassis';
+  const wheelParent = wheels.find((w) => w)?.node.parent ?? kartObj;
+  for (const c of [...wheelParent.children]) if (!WHEELS.includes(c.name)) chassis.add(c);
+  wheelParent.add(chassis);
   const steering = find('steering');
   const steeringBase = steering?.quaternion.clone() ?? new THREE.Quaternion();
   const seat = find('seat');
@@ -72,6 +104,10 @@ export function createKartView(kart: Kart, ctx: RenderContext): View {
   let shells: THREE.Object3D[] = [];
   const wantShells = () => ctx.quality.fur && ctx.quality.tier === 'high' && kart.isHuman;
   if (wantShells()) shells = addFurShells(driver);
+
+  const contact = contactShadow();
+  root.add(contact.mesh);
+  let contactK = 1;
 
   ctx.scene.add(root);
 
@@ -255,13 +291,14 @@ export function createKartView(kart: Kart, ctx: RenderContext): View {
     const sxz = (1 + st.sq * 0.35) * (1 + 0.3 * st.flat);
     body.scale.set(sxz * st.scale, sy * st.scale, sxz * st.scale);
 
-    body.quaternion.setFromAxisAngle(AX, st.pitch);
-    // The body rolls about the centre of the ground contact, which would push the low-side
-    // wheels into the road. Keep the roll modest and lift the body so those wheels stay on it.
-    const roll = st.lean * 0.45;
-    const rollLift = Math.sin(Math.abs(roll)) * 0.62;
-    _q2.setFromAxisAngle(AZ, roll);
-    body.quaternion.multiply(_q2);
+    // Chassis only: pitch from acceleration and a little body roll to the outside of the turn,
+    // like a sprung car. The wheels are not part of it and stay on the road.
+    chassis.quaternion.setFromAxisAngle(AX, st.pitch);
+    _q2.setFromAxisAngle(AZ, -st.lean * ROLL_GAIN);
+    chassis.quaternion.multiply(_q2);
+    chassis.position.set(0, ROLL_PIVOT_Y, 0).applyQuaternion(chassis.quaternion).negate();
+    chassis.position.y += ROLL_PIVOT_Y;
+    body.quaternion.identity();
 
     // visual spin for hits when the sim does not rotate the body itself (grey-box physics)
     if (st.spinT >= 0) {
@@ -275,7 +312,7 @@ export function createKartView(kart: Kart, ctx: RenderContext): View {
         if (st.spinKind === 'tumble') { body.position.y = Math.sin(u * Math.PI) * 0.9; }
         body.quaternion.multiply(_q2);
       }
-    } else body.position.y = damp(body.position.y, rollLift, 14, dt);
+    } else body.position.y = damp(body.position.y, 0, 14, dt);
     // trick: barrel roll in the air
     if (st.trickT >= 0) {
       st.trickT += dt;
@@ -288,19 +325,17 @@ export function createKartView(kart: Kart, ctx: RenderContext): View {
   }
 
   function updateWheels(dt: number, wheelAngle: number): void {
-    _inv.copy(kart.renderQuat).invert();
+    // Sim pose, not the interpolated one: the wheel positions belong to the same sim step.
+    _inv.copy(kart.quat).invert();
     for (let i = 0; i < 4; i++) {
       const r = wheels[i];
       const w = kart.wheels[i];
       if (!r || !w) continue;
-      // suspension travel: wheel centre height in kart space relative to its running average
-      let travel = 0;
-      const valid = w.pos.lengthSq() > 1e-6 && w.pos.distanceToSquared(kart.renderPos) < 9;
-      const sample = valid ? _v.copy(w.pos).sub(kart.renderPos).applyQuaternion(_inv).y : -w.compression * 0.3;
-      if (!r.restInit) { r.rest = sample; r.restInit = true; }
-      if (w.grounded) r.rest = damp(r.rest, sample, 0.8, dt);
-      travel = w.grounded ? sample - r.rest : -0.06;
-      r.offset = damp(r.offset, Math.max(-0.09, Math.min(0.09, travel)), 25, dt);
+      // Set the tyre down where the sim's wheel touches the road (the sim's wheel centre minus
+      // its radius, in kart space); in the air the sim extends the strut and the wheel hangs.
+      const valid = w.pos.lengthSq() > 1e-6 && w.pos.distanceToSquared(kart.pos) < 9;
+      const target = valid ? _v.copy(w.pos).sub(kart.pos).applyQuaternion(_inv).y - SIM_WHEEL_R - r.bottom : 0;
+      r.offset = damp(r.offset, Math.max(-0.2, Math.min(0.14, target)), 40, dt);
       r.node.position.set(r.base.x, r.base.y + r.offset, r.base.z);
       r.node.quaternion.copy(r.baseQ);
       if (i < 2) r.node.quaternion.multiply(_q.setFromAxisAngle(AY, w.steer));
@@ -325,6 +360,9 @@ export function createKartView(kart: Kart, ctx: RenderContext): View {
       updateFace(dt);
       updateBody(dt);
       updateWheels(dt, wheelAngle);
+      contactK = damp(contactK, kart.grounded ? 1 : 0, 12, dt);
+      contact.strength.value = contactK;
+      contact.mesh.visible = contactK > 0.02;
       // The WebGPU skinning node does not reliably refresh bone matrices of cloned rigs when the
       // renderer is driven without its own animation loop, so push them explicitly each frame.
       root.updateMatrixWorld(true);
@@ -335,6 +373,7 @@ export function createKartView(kart: Kart, ctx: RenderContext): View {
       mixer.stopAllAction();
       mixer.uncacheRoot(driver);
       for (const s of shells) s.removeFromParent();
+      (contact.mesh.material as THREE.Material).dispose();
       ctx.scene.remove(root);
     },
   };
