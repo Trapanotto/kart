@@ -92,8 +92,32 @@ def lathe(prof, n_ang, radius_fn=None, col_fn=None):
     return np.array(V), np.array(F), Cs
 
 
-def wheel_mesh(t, R, W):
+def wheel_mesh_lod1(t, R, W):
+    """About 250 triangles: 16-sided tyre (vertices on radius R, one straight below the axle so the
+    lowest point matches the full wheel), dished rim with hub, inner cap. No tread blocks or bolts."""
+    hw = W / 2
+    n = 16
+    tc = t.tyre
+    tyre = [(-hw * 0.7, R * 0.6, tc), (-hw, R * 0.8, tc), (-hw * 0.82, R, tc), (hw * 0.82, R, tc),
+            (hw, R * 0.8, tc), (hw * 0.7, R * 0.6, tc)]
+    rc, hc = t.rim, t.hub
+
+    def rim_col(i, j, c):
+        if t.rim_spokes and j == 1 and (i * t.rim_spokes // n) % 2 == 1:
+            return t.rim2
+        return c
+    rim = [(hw * 0.7, R * 0.6, rc), (hw * 0.86, R * 0.4, rc), (hw * 0.98, R * 0.18, hc), (hw * 1.08, 0.0001, hc)]
+    inner = [(-hw * 0.55, 0.0001, '#3A3D45'), (-hw * 0.7, R * 0.6, '#3A3D45')]
+    V, F, Cl, off = [], [], [], 0
+    for Vp, Fp, Cp in (lathe(tyre, n), lathe(rim, n, col_fn=rim_col), lathe(inner, 8)):
+        V.append(Vp); F.append(Fp + off); Cl += Cp; off += len(Vp)
+    return np.concatenate(V), np.concatenate(F), Cl
+
+
+def wheel_mesh(t, R, W, lod=0):
     """Left wheel in local space (axle = X, outer side = +X): tyre with chunky tread, dished rim, hub, bolts."""
+    if lod:
+        return wheel_mesh_lod1(t, R, W)
     hw = W / 2
     blocks = 12
     n_ang = blocks * 4

@@ -44,7 +44,13 @@ export const BELTS = [
 
 export const BARRELS = { from: 'chute+2', to: 'jump-5', period: 1.9, speed: 11, radius: 0.75, lap: 2 };
 
-export const CANNON = { target: 'spiralExit+16', duration: 3.4 };
+/**
+ * Lap-3 pipe cannon: lands after the spiral exit. The flight time sets what the shortcut is worth: with
+ * 3.4 s it saved ~4.5-5 s against a clean run over the dry line (hallExit -> spiralExit+16, ~10.5 s);
+ * with 6.8 s (a long lob over the courtyard) it saves ~1.3 s against that, and more against karts
+ * that get caught in the courtyard flood.
+ */
+export const CANNON = { target: 'spiralExit+16', duration: 6.8 };
 
 /** Read-only state the theme view animates from. */
 export interface HonigState {

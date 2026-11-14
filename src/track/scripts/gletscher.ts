@@ -129,6 +129,29 @@ function slowRacingLineOnIce(track: any): void {
   }
 }
 
+/**
+ * Lap-2 crack: where it rejoins the tunnel (a right-hander on ice), the end of the tunnel's wall and an
+ * ice block stand at the crack's right edge. The AI came down the crack at full speed, started its drift
+ * 25 m early, slid across the ice into them and stopped dead (once it had to be respawned). Over the
+ * crack's last 60 m (from before the crest that takes the wheels off the ice): cap the target speed
+ * (`cap` of top speed, ramping in over `ease` metres); from `lineFrom` on keep the AI line on the left half.
+ */
+export const CRACK_EXIT = { lineFrom: 66, from: 44, to: 106, lat: -2.8, cap: 0.64, ease: 14 };
+function crackExitLine(track: any): void {
+  const p = track.paths.find((q: any) => q.id === 'caveHole');
+  if (!p) return;
+  const L: Float32Array = track.rlLat[p.index], S: Float32Array = track.rlSpeed[p.index];
+  const C = CRACK_EXIT;
+  for (let i = 0; i < p.count; i++) {
+    const s = i * p.ds;
+    if (s < C.from - C.ease || s > C.to + C.ease) continue;
+    const ramp = (a: number, x: number) => { const u = Math.min(1, Math.max(0, x < a ? (x - (a - C.ease)) / C.ease : x > C.to ? 1 - (x - C.to) / C.ease : 1)); return u * u * (3 - 2 * u); };
+    L[i] += (C.lat - L[i]) * ramp(C.lineFrom, s);
+    const cap = 1 + (C.cap - 1) * (s < C.from ? ramp(C.from, s) : 1);
+    if (S[i] > cap) S[i] = cap;
+  }
+}
+
 export const gletscherScript: TrackScript = {
   create(track: any) {
     const main = track.paths[0];
@@ -151,6 +174,7 @@ export const gletscherScript: TrackScript = {
     const ctl = { crackAt: -1 };
     let fxT = 0;
     slowRacingLineOnIce(track);
+    crackExitLine(track);
 
     const inShoreTrap = (progress: number): boolean => {
       const b = detourBranch();

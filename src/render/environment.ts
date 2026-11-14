@@ -109,6 +109,16 @@ export interface Lighting {
   dispose(): void;
 }
 
+/** The HDR only lights the scene (the visible sky is procedural), so small files are enough. */
+function hdrFile(name: string, tier: QualitySettings['tier']): string {
+  return `${name}_${tier === 'mobile' ? '512' : '1k'}`;
+}
+
+/** Starts fetching a track's HDR early, in parallel with the rest of the loading. */
+export function preloadEnvironment(d: EnvironmentDef, q: QualitySettings): void {
+  if (d.hdr) void loadHdr(hdrFile(d.hdr, q.tier));
+}
+
 const hdrCache = new Map<string, Promise<DataTexture | null>>();
 
 async function loadHdr(name: string): Promise<DataTexture | null> {
@@ -224,7 +234,7 @@ export function createLighting(renderer: () => WebGPURenderer, scene: Scene, cam
       buildSun(); // re-derive biases for the new sun elevation (CSM clones the shadow per cascade)
 
       // Phones get the 1k sky when it exists (a quarter of the download and upload).
-      hdrTex = d.hdr ? ((quality.tier === 'mobile' ? await loadHdr(`${d.hdr}_1k`) : null) ?? await loadHdr(d.hdr)) : null;
+      hdrTex = d.hdr ? await loadHdr(hdrFile(d.hdr, quality.tier)) : null;
       if (hdrTex) {
         // The HDRI lights the scene; the visible sky stays procedural so photographed
         // trees and horizons do not clash with the stylised world.

@@ -3,10 +3,14 @@
 // Chords are roman numerals, one or two per bar. Patterns are defined in music.ts.
 import type { InstrumentName } from './instruments';
 
-export type BassPat = 'whole' | 'half' | 'country' | 'pop' | 'drive' | 'walk' | 'bounce' | 'none';
-export type DrumPat = 'none' | 'light' | 'pop' | 'country' | 'half' | 'drive' | 'march';
-export type CompPat = 'block' | 'stab' | 'offbeat' | 'strum8' | 'pad' | 'arp' | 'arp16' | 'none';
-export type PercPat = 'claps' | 'shaker' | 'none';
+export type BassPat = 'whole' | 'half' | 'country' | 'pop' | 'drive' | 'walk' | 'bounce' | 'none'
+  | 'sparse' | 'octave' | 'funk' | 'synco';
+export type DrumPat = 'none' | 'light' | 'pop' | 'country' | 'half' | 'drive' | 'march'
+  | 'temple' | 'taiko' | 'taiko2' | 'conveyor' | 'factory' | 'factory2' | 'rush' | 'avalanche';
+export type CompPat = 'block' | 'stab' | 'offbeat' | 'strum8' | 'pad' | 'arp' | 'arp16' | 'none' | 'arp3' | 'funk';
+export type PercPat = 'claps' | 'shaker' | 'none' | 'wood' | 'rain' | 'press' | 'steam' | 'ice';
+/** Drum fill played in the last bar of sections with `fill`. */
+export type FillPat = 'std' | 'taiko' | 'clank' | 'avalanche';
 
 export interface SectionDef {
   bars: number;
@@ -36,6 +40,8 @@ export interface SongDef {
   leadInst: InstrumentName;
   counterInst: InstrumentName;
   compInst: InstrumentName;
+  /** Drum fill style (default 'std'). */
+  fill?: FillPat;
   sections: Record<string, SectionDef>;
   order: string[];
   /** Index in `order` to loop back to; -1 = play once. */
@@ -85,6 +91,85 @@ export const KLEEBLATT: SongDef = {
   loopTo: 1,
 };
 
+// ---------------------------------------------------------------- Bambus-Tempel: "Nebel im Bambushain"
+// C minor pentatonic over Eb major chords (tonic = vi), straight 16ths, shakuhachi over koto and taiko.
+const BA_A = '6, . 1 2 3 - 2_1 6, | 1 . 6, 1 2 - 1 6, | 5, . 6, 2 3 2 5 - | 6 - - . 5_6 5 3 . | 6, . 1 2 3 - 5 6 | 1\' - 6 5 6 . 1\' 2\' | 3\' . 2\' 3\' 5\' - 3\' 2\' | 6 - - - - . 5_6 1\'';
+const BA_A2 = '6, . 1 2 3 - 2_1 6, | 1 . 6, 1 2 - 1 6, | 5, . 6, 2 3 2 5 - | 6 - - . 5_6 5 3 . | 1\' . 6 1\' 2\' - 1\' 6 | 5 - 6 5 1 . 2 1 | 2 . 5, 6, 2 - 3 2 | 6, - - - - - . .';
+const BA_B = '6_1\' 6 5_6 1\' 6 . 5_6 1\' | 2\' . 6_5 6 2\' 1\' 6 5 | 3\' - 2\'_1\' 6 1\' - 6 5 | 5 - - . 3_5 6 1\' 2\' | 1\' . 6 1\' 2\' 1\' 6 5 | 6 . 5 6 2\' - 3\' 2\' | 1\' 2\' 3\' . 5\' - 3\' 2\' | 2\' - - - 6_5 3 2 5,';
+const BA_BRK = '6 - - - 5 - 3 - | 1\' - - - 6 - - - | 3 - 5 - 6 - 1\' - | 2\' - - - - - . .';
+const BA_CH_A = 'vi | IV | V | vi | vi | IV | iii | vi';
+const BA_CH_A2 = 'vi | IV | V | vi | vi | IV | V | vi';
+const BA_CH_B = 'IV | V | vi | I | IV | V | vi | V';
+
+export const BAMBUS: SongDef = {
+  id: 'bambus', bpm: 112, key: 63, swing: 0, leadInst: 'shaku', counterInst: 'koto', compInst: 'koto', fill: 'taiko',
+  sections: {
+    intro: { bars: 4, chords: 'vi7 | IVmaj7 | vi7 | V', lead: '. . . . . . . . | . . . . . . . . | . . . . . . . . | . . . . 2 - 5, .', bass: 'sparse', drums: 'temple', comp: 'arp3', fill: true },
+    A: { bars: 8, chords: BA_CH_A, lead: BA_A, bass: 'sparse', drums: 'taiko', perc: 'wood', comp: 'arp3', crash: true },
+    A2: { bars: 8, chords: BA_CH_A2, lead: BA_A2, bass: 'sparse', drums: 'taiko', perc: 'wood', comp: 'arp3', fill: true },
+    B: { bars: 8, chords: BA_CH_B, lead: BA_B, leadInst: 'koto', bass: 'half', drums: 'taiko2', perc: 'rain', comp: 'pad', compInst: 'pad', crash: true, fill: true },
+    brk: { bars: 4, chords: 'vi7 | IVmaj7 | vi7 | V', lead: BA_BRK, bass: 'whole', drums: 'temple', perc: 'rain', comp: 'arp', counter: true, fill: true },
+    A3: { bars: 8, chords: BA_CH_A, lead: BA_A, bass: 'sparse', drums: 'taiko2', perc: 'wood', comp: 'arp3', counter: true, crash: true },
+    Bh: { bars: 8, chords: BA_CH_B, lead: BA_B, leadInst: 'koto', harmony: true, bass: 'half', drums: 'taiko2', perc: 'rain', comp: 'pad', compInst: 'pad', fill: true },
+    A4: { bars: 8, chords: BA_CH_A2, lead: BA_A2, harmony: true, bass: 'sparse', drums: 'taiko2', perc: 'wood', comp: 'arp16', crash: true, fill: true },
+  },
+  order: ['intro', 'A', 'A2', 'B', 'brk', 'A3', 'Bh', 'A4'],
+  loopTo: 1,
+};
+
+// ---------------------------------------------------------------- Honigfabrik: "Summende Maschinen"
+// Bb major shuffle-funk: vibraphone and bee kazoo over clavinet, clanking machine drums and steam presses.
+const HO_A = '1 . 3 5 1\' . 5 3 | 6 5 3 . 5 . 1 . | 4 . 6 1\' 4\' . 1\' 6 | 5 - 7 - 2\' . . 5_5 | 1\' . 1\' 2\' 3\' . 1\' 5 | 6 . 5 3 5 . 3 1 | 4 . 6 . 5 . 7 . | 1 . 5, . 1 - . .';
+const HO_A2 = '1 . 3 5 1\' . 5 3 | 6 5 3 . 5 . 1 . | 4 . 6 1\' 4\' . 1\' 6 | 5 - 7 - 2\' . . 5_5 | 3\' . 2\' 1\' 5 . 1\' . | 6, . 1 3 6 . 3 1 | 2 . 4 6 5 . 7 2\' | 1\' - - . . . . .';
+const HO_B = '6 6 . 6 5 . 4 . | 5 5 . 5 7 . 2\' . | 6 6 . 6 5 . 3 . | 6 - 1\' - 3\' - - . | 2\' 2\' . 2\' 1\' . 6 . | 7 7 . 7 2\' . 5 . | 1\' . 3\' . 2\' . 3\' 1\' | 2\' - 7 - 5 - 4 3';
+const HO_BRK = '6 . 1\' 6 . . 3 . | 4 . 6 4 . . 1\' . | 2 . 4 2 . . 6 . | 5 . 7 . 2\' . 4\' .';
+const HO_CH_A = 'I | I | IV | V | I | I | IV V | I';
+const HO_CH_A2 = 'I | I | IV | V | I | vi | ii V7 | I';
+const HO_CH_B = 'IV | V | iii | vi | ii | V | I | V7';
+
+export const HONIG: SongDef = {
+  id: 'honig', bpm: 118, key: 70, swing: 0.2, leadInst: 'mallet', counterInst: 'pipe', compInst: 'clav', fill: 'clank',
+  sections: {
+    intro: { bars: 4, chords: 'I | IV | I | V', lead: '. . . . . . . . | . . . . . . . . | . . . . . . . . | . . . . 5 . 5_5 7,', bass: 'funk', drums: 'conveyor', comp: 'offbeat', fill: true },
+    A: { bars: 8, chords: HO_CH_A, lead: HO_A, bass: 'funk', drums: 'factory', perc: 'press', comp: 'funk', crash: true },
+    A2: { bars: 8, chords: HO_CH_A2, lead: HO_A2, bass: 'funk', drums: 'factory', perc: 'press', comp: 'offbeat', fill: true },
+    B: { bars: 8, chords: HO_CH_B, lead: HO_B, leadInst: 'buzz', bass: 'octave', drums: 'factory2', perc: 'steam', comp: 'arp', compInst: 'mallet', crash: true, fill: true },
+    brk: { bars: 4, chords: 'vi | IV | ii | V7', lead: HO_BRK, bass: 'whole', drums: 'conveyor', perc: 'steam', comp: 'stab', counter: true, fill: true },
+    A3: { bars: 8, chords: HO_CH_A, lead: HO_A, bass: 'octave', drums: 'factory2', perc: 'press', comp: 'funk', counter: true, crash: true },
+    Bh: { bars: 8, chords: HO_CH_B, lead: HO_B, leadInst: 'buzz', harmony: true, bass: 'octave', drums: 'factory2', perc: 'steam', comp: 'arp', compInst: 'mallet', fill: true },
+    A4: { bars: 8, chords: HO_CH_A2, lead: HO_A2, harmony: true, bass: 'funk', drums: 'factory2', perc: 'press', comp: 'arp16', crash: true, fill: true },
+  },
+  order: ['intro', 'A', 'A2', 'B', 'brk', 'A3', 'Bh', 'A4'],
+  loopTo: 1,
+};
+
+// ---------------------------------------------------------------- Gletscher-Gipfel: "Lawinenlauf"
+// F# minor over A major chords (tonic = vi), fast and straight: icy synth lead, glass-bell arpeggios,
+// an alphorn calm before the avalanche, then double-time kicks.
+const GL_A = '6, . 3 . 6 3 1 3 | 4 . 1 . 6 4 1 6, | 5 . 3 . 1\' 5 3 1 | 7, . 2 5 7 - 5 2 | 6, 1 3 6 1\' - 6 3 | 4 6 1\' 6 4\' - 1\' 6 | 2\' - 7 5 7 . 2\' 3\' | 2\' - - - 7 . 5 .';
+const GL_A2 = '6, . 3 . 6 3 1 3 | 4 . 1 . 6 4 1 6, | 5 . 3 . 1\' 5 3 1 | 7, . 2 5 7 - 5 2 | 1\' . 6 1\' 3\' - 1\' 6 | 4\' - 2\' 1\' 6 . 4 6 | 5 . 7 . 2\' 3\' 2\' 7 | 6 - - - - - . .';
+const GL_B = '6 - - - 1\' - - - | 7 - - - 5 - 7 - | 3\' - - - 5 - 7 - | 6 - - - - - 3\' 1\' | 2\' - - - 1\' - 6 - | 7 - - - 2\' - 3\' 2\' | 1\' - 3\' - 5 - 1\' - | 7 - - - - . 5_6 7';
+const GL_BRK = '6, - - - 1 - 3 - | 4 - - - 6, - 1 - | 2 - - - 4 - 6 - | 5 - - - 7, - - .';
+const GL_CH_A = 'vi | IV | I | V | vi | IV | V | V';
+const GL_CH_A2 = 'vi | IV | I | V | vi | IV | V | vi';
+const GL_CH_B = 'IV | V | iii | vi | IV | V | I | V';
+
+export const GLETSCHER: SongDef = {
+  id: 'gletscher', bpm: 152, key: 69, swing: 0, leadInst: 'icelead', counterInst: 'glass', compInst: 'glass', fill: 'avalanche',
+  sections: {
+    intro: { bars: 4, chords: 'vi | IV | I | V', lead: '. . . . . . . . | . . . . . . . . | . . . . . . . . | . . . . 3 2 7, .', bass: 'synco', drums: 'light', comp: 'arp', fill: true },
+    A: { bars: 8, chords: GL_CH_A, lead: GL_A, bass: 'drive', drums: 'rush', perc: 'ice', comp: 'arp', crash: true },
+    A2: { bars: 8, chords: GL_CH_A2, lead: GL_A2, bass: 'synco', drums: 'rush', perc: 'ice', comp: 'arp', fill: true },
+    B: { bars: 8, chords: GL_CH_B, lead: GL_B, bass: 'half', drums: 'half', comp: 'pad', compInst: 'icepad', counter: true, crash: true },
+    brk: { bars: 4, chords: 'vi | IV | ii | V', lead: GL_BRK, leadInst: 'horn', bass: 'whole', drums: 'none', comp: 'pad', compInst: 'icepad', fill: true },
+    lawine: { bars: 8, chords: GL_CH_A, lead: GL_A, bass: 'drive', drums: 'avalanche', perc: 'ice', comp: 'arp16', counter: true, crash: true },
+    Bh: { bars: 8, chords: GL_CH_B, lead: GL_B, harmony: true, bass: 'synco', drums: 'rush', perc: 'ice', comp: 'arp', fill: true },
+    A4: { bars: 8, chords: GL_CH_A2, lead: GL_A2, harmony: true, bass: 'drive', drums: 'avalanche', perc: 'ice', comp: 'arp16', crash: true, fill: true },
+  },
+  order: ['intro', 'A', 'A2', 'B', 'brk', 'lawine', 'Bh', 'A4'],
+  loopTo: 1,
+};
+
 // ---------------------------------------------------------------- Jingles (C major, play once)
 export const JINGLE_WIN: SongDef = {
   id: 'win', bpm: 122, key: 60, swing: 0, leadInst: 'brass', counterInst: 'bell', compInst: 'brass',
@@ -111,10 +196,19 @@ export const FINISH_WIN: SongDef = {
   order: ['f'], loopTo: -1,
 };
 
-export const SONGS: Record<string, SongDef> = { menu: MENU, kleeblatt: KLEEBLATT, win: JINGLE_WIN, lose: JINGLE_LOSE, finishWin: FINISH_WIN };
+export const SONGS: Record<string, SongDef> = {
+  menu: MENU, kleeblatt: KLEEBLATT, bambus: BAMBUS, honig: HONIG, gletscher: GLETSCHER,
+  win: JINGLE_WIN, lose: JINGLE_LOSE, finishWin: FINISH_WIN,
+};
 
-/** Song for a track (meta.music wins, otherwise by name). */
+/** Race songs by track id, in cup order. */
+export const RACE_SONGS: Record<string, SongDef> = { kleeblatt: KLEEBLATT, bambus: BAMBUS, honig: HONIG, gletscher: GLETSCHER };
+
+/** Song for a track: meta.music wins, then the track id, then a match in the name, else Kleeblatt. */
 export function songForTrack(id: string, name: string, music?: string): SongDef {
   if (music && SONGS[music]) return SONGS[music];
+  if (RACE_SONGS[id]) return RACE_SONGS[id];
+  const n = name.toLowerCase();
+  for (const k in RACE_SONGS) if (n.includes(k)) return RACE_SONGS[k];
   return KLEEBLATT;
 }

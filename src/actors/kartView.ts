@@ -3,6 +3,7 @@
 import * as THREE from 'three/webgpu';
 import { float, length, smoothstep, uniform, uv, vec2 } from 'three/tsl';
 import type { HitKind, Kart, RenderContext, View } from '../core/types';
+import { actorLod } from './assets';
 import { addFurShells, furMaterial, glossMaterial } from './fur';
 
 /** Steering-wheel rotation at full lock; the steer clips are baked with the hands at this angle. */
@@ -56,7 +57,11 @@ export function createKartView(kart: Kart, ctx: RenderContext): View {
   const body = new THREE.Group();          // lean, pitch, squash, visual spins
   root.add(body);
 
-  const kartObj = ctx.assets.model(`kart.${id}`);
+  // Low-detail models for opponents on phones, if they were loaded.
+  const lod = actorLod(kart.isHuman, ctx.quality.tier);
+  const kartName = lod && ctx.assets.has(`kart.${id}${lod}`) ? `kart.${id}${lod}` : `kart.${id}`;
+  const charName = lod && ctx.assets.has(`char.${id}${lod}`) ? `char.${id}${lod}` : `char.${id}`;
+  const kartObj = ctx.assets.model(kartName);
   body.add(kartObj);
   const find = (n: string) => kartObj.getObjectByName(n) ?? null;
   const wheels: (WheelRig | null)[] = WHEELS.map((n) => {
@@ -77,11 +82,13 @@ export function createKartView(kart: Kart, ctx: RenderContext): View {
   const steeringBase = steering?.quaternion.clone() ?? new THREE.Quaternion();
   const seat = find('seat');
 
-  const driver = ctx.assets.model(`char.${id}`);
+  const driver = ctx.assets.model(charName);
   if (seat) seat.add(driver);
   else { driver.position.set(0, 0.3, -0.22); body.add(driver); }
 
   // --- materials, shadows ---
+  // Phones: only the player's kart is drawn into the shadow map; opponents keep their contact shadow.
+  const castShadow = kart.isHuman || ctx.quality.tier !== 'mobile';
   let furOn = ctx.quality.fur;
   const furMeshes: THREE.Mesh[] = [];
   const faces: Face[] = [];
@@ -89,7 +96,7 @@ export function createKartView(kart: Kart, ctx: RenderContext): View {
   driver.traverse((o) => {
     const m = o as THREE.Mesh;
     if (!m.isMesh) return;
-    m.castShadow = true;
+    m.castShadow = castShadow;
     m.receiveShadow = true;
     m.frustumCulled = false;   // skinned poses leave the bind-pose bounds
     const name = (m.material as THREE.Material)?.name ?? '';
@@ -100,7 +107,7 @@ export function createKartView(kart: Kart, ctx: RenderContext): View {
     const dict = m.morphTargetDictionary;
     if (dict && 'blink' in dict) faces.push({ mesh: m, blink: dict.blink, happy: dict.happy ?? -1, hurt: dict.hurt ?? -1 });
   });
-  kartObj.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
+  kartObj.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { m.castShadow = castShadow; m.receiveShadow = true; } });
   let shells: THREE.Object3D[] = [];
   const wantShells = () => ctx.quality.fur && ctx.quality.tier === 'high' && kart.isHuman;
   if (wantShells()) shells = addFurShells(driver);
@@ -113,7 +120,7 @@ export function createKartView(kart: Kart, ctx: RenderContext): View {
 
   // --- animation ---
   const mixer = new THREE.AnimationMixer(driver);
-  const clips = ctx.assets.clips(`char.${id}`);
+  const clips = ctx.assets.clips(charName);
   const actions = new Map<string, THREE.AnimationAction>();
   for (const c of clips) {
     const a = mixer.clipAction(c);

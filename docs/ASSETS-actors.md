@@ -19,6 +19,9 @@ or per family (ids comma separated or `all`):
 | `render_portraits.py -- <ids>` | `public/assets/portraits/<id>.webp` (512 px, transparent) | |
 | `contact_sheet.py -- <out> <cols> <images...>` | tiles images (used for `docs/actors-sheet.webp`) | `--bg r,g,b` |
 | `node tools/blender/actors/inspect_glb.mjs <glb...>` | prints nodes, triangles, morphs, clips, size | |
+| `build_char.py` / `build_kart.py` `-- all --export --lod 1` | `char.<id>.lod1.glb`, `kart.<id>.lod1.glb` | see [LOD](#lod-low-detail-opponents) |
+| `lod_sheet.py -- [ids] [--clip idle] [--view front\|back\|side]` | `docs/actors-lod-sheet.webp` (full vs lod1, from the GLBs) | |
+| `node tools/blender/actors/compare_lod.mjs` | checks every lod1 file against its full model, prints a table | exit 1 on mismatch |
 
 Preview renders go to `tools/blender/actors/_preview/` (override with env `ACTORS_PREVIEW`). Full rebuild takes about 4 minutes.
 
@@ -100,6 +103,28 @@ Clips (30 fps, sampled; loop = authored seamless):
 | `lose` | 2.0 s | yes | slumped, head shaking, ears drooping |
 
 Clips are full poses (not additive); `createKartView` blends them by weight (e.g. `idle` + `steer_r` by steering amount).
+
+## LOD: low-detail opponents
+
+`char.<id>.lod1.glb` and `kart.<id>.lod1.glb` are drop-in replacements for the opponents on phones: about 5 k
+triangles per kart + driver instead of about 25 k. Review sheet: `docs/actors-lod-sheet.webp`.
+
+They are rebuilt by the same scripts with `--lod 1` (env `ACTORS_LOD`), not decimated from the GLBs, so colours,
+skin weights and morphs are computed on the low mesh. LOD 0 output is byte-identical to before.
+
+| | full | lod1 |
+|---|---|---|
+| Driver fur | 9–11 k tris | 21 % of that (1.9–2.3 k), same SDF |
+| Face (`gloss`) | 3 k | 0.5–0.8 k: spheres and tubes at half the segments; `blink` / `happy` / `hurt` kept |
+| Accessory (`cloth`) | 900 | 250 |
+| Clips | 30 fps | 15 fps (same names and lengths); rest-pose translation / scale channels dropped, rotations as normalized int16 (`KHR_mesh_quantization`) by `glb_slim.py` |
+| Kart body | 4.6 k, 512 px texture | 1.25 k, 256 px texture |
+| Steering wheel | 600 | 160 |
+| Wheel | 1.7 k, tread blocks, bolts | 272: 16-sided tyre, rim and hub, no tread or bolts |
+
+Identical between full and lod1: node names, hierarchy and transforms (`wheel_*`, `steering`, `seat`, `exhaust_*`),
+wheel radius and lowest point, bones and bind pose, clip names and durations, mesh and material names, morph names.
+Files: drivers 100–125 KB (most of it is the 13 clips), karts 41–45 KB.
 
 ## Items `item.<id>.glb`
 

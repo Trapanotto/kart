@@ -271,6 +271,9 @@ export function createAudio(app: App): AudioHandle | null {
   for (const c of CHARACTERS) board['Stimmen/' + c.name] = () => { unlock(); sfx.voice(c.id); };
   board['Musik/Menü'] = () => { unlock(); screenMusic('menu'); };
   board['Musik/Kleeblatt-Tal'] = () => { unlock(); music.play(songForTrack('kleeblatt', 'Kleeblatt-Tal'), { intensity: 0.7 }); };
+  board['Musik/Bambus-Tempel'] = () => { unlock(); music.play(songForTrack('bambus', 'Bambus-Tempel'), { intensity: 0.7 }); };
+  board['Musik/Honigfabrik'] = () => { unlock(); music.play(songForTrack('honig', 'Honigfabrik'), { intensity: 0.7 }); };
+  board['Musik/Gletscher-Gipfel'] = () => { unlock(); music.play(songForTrack('gletscher', 'Gletscher-Gipfel'), { intensity: 0.7 }); };
   board['Musik/Ergebnis'] = () => { unlock(); screenMusic('results'); };
   board['Musik/Verloren'] = () => { unlock(); screenMusic('resultsLose'); };
   board['Musik/Zieleinlauf'] = () => { unlock(); music.play(FINISH_WIN); };

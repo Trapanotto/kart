@@ -89,11 +89,23 @@ export async function createApp(canvas: HTMLCanvasElement, uiRoot: HTMLElement):
         events.emit('app:loading', { done: Math.round(pct), total: 100, label });
         await new Promise((r) => setTimeout(r, 0)); // let the bar paint
       };
+      // Downloads start right away and run while the track is being built.
+      const assetNames = modules.raceAssets(cfg, quality());
+      let assetsDone = 0, assetStage = false;
+      const assetProgress = () => { if (assetStage) events.emit('app:loading', { done: Math.round(10 + 35 * assetsDone), total: 100, label: 'Figuren' }); };
+      const assetsReady = assets.load(assetNames, (done, total) => { assetsDone = done / Math.max(1, total); assetProgress(); });
+      assetsReady.catch(() => {});
+      modules.warmPhysics();
+      const meta = modules.trackList().find((t) => t.id === cfg.trackId);
+      if (meta) modules.preloadEnvironment(meta.environment, quality());
       await progress(2, 'Strecke');
       const track = await modules.loadTrack(cfg.trackId);
-      await progress(10, 'Figuren');
-      const assetNames = modules.raceAssets(cfg);
-      await assets.load(assetNames, (done, total) => events.emit('app:loading', { done: Math.round(10 + 35 * (done / Math.max(1, total))), total: 100, label: 'Figuren' }));
+      assetStage = true;
+      await progress(10 + 35 * assetsDone, 'Figuren');
+      await assetsReady;
+      // A low-detail model that is missing falls back to the full one.
+      const full = assetNames.filter((n) => n.endsWith('.lod1') && !assets.has(n)).map((n) => n.slice(0, -5));
+      if (full.length) await assets.load(full);
       await progress(46, 'Physik');
       const physics = await modules.createPhysics(track, cfg);
       const items = modules.createItemSystem();
@@ -243,6 +255,15 @@ export async function createApp(canvas: HTMLCanvasElement, uiRoot: HTMLElement):
 
   const ui = modules.createUI(app, uiRoot);
   modules.createAudio(app);
+
+  // While the player is in the menus, fetch what every race needs: engine, figures, karts, items.
+  const q0 = new URLSearchParams(location.search);
+  if (ui && !q0.has('race')) {
+    setTimeout(() => {
+      modules.warmPhysics();
+      void assets.load(modules.raceAssets({ trackId: '', player: 'otter', speedClass: SPEED_CLASSES[1], seed: 0, mode: 'race' }, quality())).catch(() => {});
+    }, 600);
+  }
 
   // Direct start for development: ?race=<trackId>&char=<id>&class=<easy|normal|turbo>&laps=<n>
   const q = new URLSearchParams(location.search);

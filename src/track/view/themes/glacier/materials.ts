@@ -32,6 +32,13 @@ function triColor(set: TexSet | undefined, scale: number, a: string, b: string):
 
 /** Frozen lake (world x/z centre, radius) shared with the terrain material. */
 export const LAKE = { x: 178, z: -268, r: 50 };
+/**
+ * The crevasse under the snow bridge (world x, z of its centre, half extents across / along the road,
+ * road level): its walls turn dark blue with depth so the gash reads from the ramp.
+ */
+export const CREVASSE = { x: -158, z: -244, hx: 36, hz: 9, y: 25.3 };
+/** Main-path progress range of the painted warning chevrons before the jump ramp (set by the theme; -1 = off). */
+export const crevasseWarn = uniform(new THREE.Vector2(-1, -1));
 
 /** View-dependent glitter: tiny bright points that twinkle as the camera moves. */
 function sparkle(scale: number, amount: number): Node {
@@ -81,11 +88,19 @@ export function snowTerrainMaterial(T: TexLib, mobile: boolean): THREE.MeshStand
   lake = mix(lake, color('#e3eef8'), clamp(crack, 0, 1).mul(0.8));
   lake = mix(lake, color('#dbe7f2'), dust.mul(0.7));
   col = mix(col, lake, lakeW);
+  // crevasse walls: deep glacier blue, darker with depth (a faint glow keeps them from going black)
+  const cv = xz.sub(vec2(CREVASSE.x, CREVASSE.z)).abs();
+  const cvIn = smoothstep(CREVASSE.hx, CREVASSE.hx - 8, cv.x).mul(smoothstep(CREVASSE.hz + 1, CREVASSE.hz - 2, cv.y));
+  const cvDepth = float(CREVASSE.y).sub(positionWorld.y);
+  const cvW = smoothstep(0.6, 3.5, cvDepth).mul(cvIn);
+  const cvCol = mix(color('#3f86c4'), color('#0b2c52'), smoothstep(2, 9, cvDepth));
+  col = mix(col, cvCol, cvW.mul(0.92));
   m.colorNode = col;
   const rough = mix(mix(float(0.82), float(0.42), iceW), float(0.9), rockW);
-  m.roughnessNode = mix(rough, mix(float(0.08), float(0.7), dust), lakeW);
+  m.roughnessNode = mix(mix(rough, mix(float(0.08), float(0.7), dust), lakeW), float(0.25), cvW);
   m.metalnessNode = float(0);
-  if (!mobile) m.emissiveNode = vec3(1, 1, 1).mul(sparkle(9, 0.9).mul(float(1).sub(rockW)).mul(float(1).sub(lakeW.mul(0.6))));
+  const cvGlow = color('#1f6fb8').mul(cvW.mul(0.22));
+  m.emissiveNode = mobile ? cvGlow : vec3(1, 1, 1).mul(sparkle(9, 0.9).mul(float(1).sub(rockW)).mul(float(1).sub(lakeW.mul(0.6))).mul(float(1).sub(cvW))).add(cvGlow);
   return m;
 }
 
@@ -132,6 +147,12 @@ export function glacierRoadMaterial(T: TexLib): THREE.MeshPhysicalNodeMaterial {
   const inStart = step(s, 1.8).mul(main);
   const chk = abs(step(0.5, fract(lat.div(1.8))).sub(step(0.5, fract(s.div(1.8)))));
   col = mix(col, mix(color('#1c1c1c'), color('#f6f6f2'), chk), inStart);
+  // painted warning chevrons (pointing ahead) on the run-up to the crevasse jump
+  const wv: Node = crevasseWarn;
+  const inWarn = step(wv.x, s).mul(step(s, wv.y)).mul(main).mul(float(1).sub(smoothstep(hw.sub(1.6), hw.sub(1.2), abs(lat))));
+  const chev = step(0.6, fract(s.add(abs(lat).mul(0.75)).div(3.2)));
+  const warnW = inWarn.mul(chev);
+  col = mix(col, color('#e0352a'), warnW.mul(0.9));
   m.colorNode = col;
   m.roughnessNode = mix(mix(mix(float(0.78), float(0.95), look.x), float(0.1), look.z), float(0.6), kerbMask);
   m.metalnessNode = float(0);

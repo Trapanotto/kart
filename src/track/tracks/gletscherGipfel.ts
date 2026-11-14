@@ -185,6 +185,9 @@ export const gletscherGipfel: TrackDef = {
       { at: XZ(15, -330), radius: 34, height: -10, sx: 2.2, sz: 0.7 }, // basin inside the ridge
       { at: XZ(-178, -268), radius: 62, height: -9 }, // lake basin
       { at: XZ(158, -214), radius: 7, height: -16, sx: 6, sz: 1 }, // crevasse trench
+      // the crevasse itself, under the snow bridge (inside the deck span crevasse-11..+11, so the road
+      // and the deck are untouched): deep enough to read as a dark blue gash from the ramp
+      { at: XZ(158, -244), radius: 7.5, height: -9, sx: 5, sz: 1 },
     ],
     noise: { amp: 2.2, scale: 42 },
     patches: [{ at: XZ(-178, -268), radius: 48, surface: 'ice' }],
@@ -200,6 +203,9 @@ export const gletscherGipfel: TrackDef = {
     // tagged only so they get their own collider)
     { name: 'glacier_iceblock', pos: XZ(145, -327.7), rot: 174, solid: [1.6, 9.5] as Vec2, solidHeight: 5, tag: 'caveCloser' },
     { name: 'glacier_iceblock', pos: XZ(103.7, -397.3), rot: 126, dy: 1.3, solid: [1.6, 7.5] as Vec2, solidHeight: 5, tag: 'caveCloser' },
+    // crevasse jump: red flags at the ramp lip, blue flags at the far lip of the crevasse
+    ...[-1, 1].map((sd) => ({ name: 'glacier_flag_r', at: 'ramp', lat: sd * 13, rot: 180 })),
+    ...[-1, 1].map((sd) => ({ name: 'glacier_flag_b', at: 'crevasse+14', lat: sd * 13, rot: 180 })),
     // lap 3: the avalanche pile across the shore road (hidden until it lands)
     { name: 'glacier_snowpile', at: 'avalanche', lat: 0, dy: 6.28, solid: [27, 12] as Vec2, solidHeight: 5, tag: 'avalanchePile', enabled: false },
     // summit: cable car station inside the loop (cable leaves to the south, up to the glacier peak)

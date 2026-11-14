@@ -7,13 +7,18 @@
 //   stage. Every stage warns for WARN seconds (planks shake), then the cells fall: their
 //   colliders switch off and the AI racing line weaves around the holes.
 // - Karts that fall into the gorge are put back before the bridge.
+// - Karts that end up behind a barrier (thrown over it, slipped through a seam) are put back on
+//   the road after BAMBUS_BEHIND.time seconds instead of grinding along it for the rest of the lap.
+// - AI line fixes (BAMBUS_LINE_FIXES): speed caps before hairpin 2 / the last corner, centred line
+//   through the temple gates.
 // - Lap 3: a lantern swings across the temple courtyard lane, bamboo logs roll across the
 //   second downhill leg, the gong rings when karts pass.
 import { Quaternion, Vector3 } from 'three';
+import { KART } from '../../core/data';
 import type { Kart, RaceSim, SimEntity, TrackCollider, TrackFrame } from '../../core/types';
 import type { BuiltTrack } from '../builder';
 import type { TrackScript } from '../format';
-import { resolveProgress, type BuiltPath } from '../path';
+import { EDGE_DEFAULT_OFFSET, resolveProgress, type BuiltPath } from '../path';
 
 /** Map scale of the track file (map metres -> world metres). */
 export const BAMBUS_SCALE = 1.1;
@@ -29,16 +34,23 @@ export const BAMBUS_LOGS = { at: 'leg2-2', to: 'leg2+22', period: 2.6 };
 /**
  * Holes per stage as [segment, lane] (lane 0 = left, 1 = centre, 2 = right). Lap 2 the left side of
  * the middle span crumbles (the wide centre lane stays safe); lap 3 the middle of segment 2 gives way
- * too, so the right lane (it never breaks) is the only way across there.
+ * too, so the right lane (it never breaks, and it is the widest: 4.5 m) is the only way across there.
  */
 export const BRIDGE_STAGES: { lap: number; delay: number; holes: [number, number][] }[] = [
   { lap: 2, delay: 0, holes: [[2, 0]] },
   { lap: 2, delay: 20, holes: [[3, 0]] },
   { lap: 3, delay: 0, holes: [[2, 1]] },
 ];
-/** Lane edges as fractions of the half width: narrow side lanes, a wide centre lane. */
-export const BRIDGE_LANES = [-1, -0.45, 0.45, 1];
+/** Lane edges as fractions of the half width: a narrow left lane, a wide centre lane, the widest right lane. */
+export const BRIDGE_LANES = [-1, -0.45, 0.25, 1];
 const WARN = 3.2;
+/** Clearance the AI keeps around a hazard (src/ai/tuning.ts AI.hazard.clearance). */
+const AI_DODGE_CLEARANCE = 1.9;
+/** Rows per path in `TrackLocation.hint` (path * HINT_ROWS + row, as in the builder). */
+const HINT_ROWS = 1 << 20;
+/** Behind-the-barrier watchdog: lateral margin beyond the barrier line (m) and seconds before a respawn. */
+export const BAMBUS_BEHIND = { margin: 0.7, time: 2.0 };
+const BEHIND = BAMBUS_BEHIND;
 
 export interface BridgeCell {
   seg: number;
@@ -136,12 +148,48 @@ function buildBridge(t: BuiltTrack): void {
 
 const smooth = (x: number) => { const u = Math.min(1, Math.max(0, x)); return u * u * (3 - 2 * u); };
 
-/** AI line over the bridge for the holes that exist (or are about to) after `stage` stages. */
-function bridgeLine(t: BuiltTrack, b: BambusBuild, stage: number): void {
+/**
+ * AI line fixes, applied once on top of the builder's racing line.
+ * - Hairpin 2 and the last corner: karts come off a boost pad and a crest well above top speed, but the
+ *   builder's speed profile never asks for less than top speed on the approach, so the AI brakes late
+ *   and starts its drift too fast. Cap the target speed there (`cap`), ramping in over `ease` metres.
+ * - The temple gates (lap 3): the line ran 1 m off centre through the doorways and karts clipped the
+ *   gate lanterns; pull it to the middle (`lat`) and arrive a little slower.
+ */
+export const BAMBUS_LINE_FIXES: { path?: string; from: string; to: string; cap: number; lat?: number; ease: number }[] = [
+  { from: 'leg2-20', to: 'hairpin2+4', cap: 0.86, ease: 14 },
+  { from: 'lastCorner-30', to: 'lastCorner+2', cap: 0.86, ease: 14 },
+  { path: 'temple', from: 'courtyard-22', to: 'courtyard-12', cap: 0.85, lat: 0, ease: 10 },
+  { path: 'temple', from: 'courtyard+11', to: 'courtyard+18', cap: 1, lat: 0, ease: 8 },
+];
+
+function lineFixes(t: BuiltTrack): void {
+  for (const z of BAMBUS_LINE_FIXES) {
+    const p = z.path ? t.paths.find((q) => q.id === z.path) : t.paths[0];
+    if (!p) continue;
+    const L = t.rlLat[p.index], S = t.rlSpeed[p.index];
+    const a = resolveProgress(p, z.from), b = resolveProgress(p, z.to);
+    for (let i = 0; i < p.count; i++) {
+      const s = i * p.ds;
+      if (s < a - z.ease || s > b + z.ease) continue;
+      const w = s < a ? smooth((s - (a - z.ease)) / z.ease) : s > b ? 1 - smooth((s - b) / z.ease) : 1;
+      if (z.lat !== undefined) L[i] += (z.lat - L[i]) * w;
+      if (s > b) continue;
+      const cap = 1 + (z.cap - 1) * (s < a ? w : 1);
+      if (S[i] > cap) S[i] = cap;
+    }
+  }
+}
+
+/**
+ * AI line over the bridge for the holes that exist (or are about to) after `stage` stages. Returns the
+ * line's lateral offset per segment (bridge half width 6 m), empty for an intact bridge.
+ */
+function bridgeLine(t: BuiltTrack, b: BambusBuild, stage: number): number[] {
   const L = t.rlLat[0], S = t.rlSpeed[0];
   L.set(b.baseLat);
   S.set(b.baseSpeed);
-  if (stage <= 0) return;
+  if (stage <= 0) return [];
   const p = b.main;
   const n = BAMBUS_BRIDGE.segments;
   const holes = new Set<string>();
@@ -168,7 +216,7 @@ function bridgeLine(t: BuiltTrack, b: BambusBuild, stage: number): void {
     if (ok(k, c)) end[k] = c; else start[k + 1] = a;
   }
   // the centre lane is biased away from the broken left side
-  const laneLat = (l: number, hw: number) => (l === 1 ? 0.9 : ((b.laneEdges[l] + b.laneEdges[l + 1]) / 2) * hw);
+  const laneLat = (l: number, hw: number) => ((b.laneEdges[l] + b.laneEdges[l + 1]) / 2) * hw + (l === 1 ? 0.4 : 0);
   const pre = 26;
   const slow = stage >= BRIDGE_STAGES.length ? 0.66 : 0.8;
   for (let i = 0; i < p.count; i++) {
@@ -191,6 +239,7 @@ function bridgeLine(t: BuiltTrack, b: BambusBuild, stage: number): void {
     L[i] = b.baseLat[i] + (lat - b.baseLat[i]) * w;
     if (s >= b.s0 - 20 && s <= b.s1) S[i] = Math.min(S[i], slow);
   }
+  return lanes.map((l) => laneLat(l, 6));
 }
 
 /** Invisible marker in a broken plank cell, so the AI's hazard avoidance keeps away from it. */
@@ -302,6 +351,7 @@ function respawnKart(t: BuiltTrack, k: Kart, sim: RaceSim): void {
 
 export const bambusScript: TrackScript = {
   build(track: BuiltTrack) {
+    lineFixes(track);
     buildBridge(track);
   },
   create(track: BuiltTrack) {
@@ -317,6 +367,7 @@ export const bambusScript: TrackScript = {
     const gongPos = new Vector3();
     if (temple) gongPos.copy(frame(track, temple, gongS, -4.5).pos);
     let gongCool = 0;
+    const behind = new Map<number, number>();
     const logFrom = resolveProgress(b.main, BAMBUS_LOGS.at), logTo = resolveProgress(b.main, BAMBUS_LOGS.to);
     const gx = -BAMBUS_GORGE.e;
 
@@ -326,22 +377,27 @@ export const bambusScript: TrackScript = {
         const c = b.cells.find((q) => q.seg === seg && q.lane === lane)!;
         if (c.state === 0) { c.state = 1; c.since = sim.time; }
       }
-      // invisible markers over the broken cells, so overtaking AI keeps clear (one per hole span)
+      state.stage = Math.max(state.stage, k + 1);
+      const line = bridgeLine(track, b, state.stage);
+      // Invisible markers over the broken cells (two per segment). Each one is sized so that it reaches
+      // the AI line in its segment: the AI then always 'dodges' it towards the intact lane (a dodge of a
+      // few centimetres), and because it handles one hazard at a time, a marker ahead also shadows a
+      // dodge of a dropped item that would steer it into the hole.
       for (const m of markers) m.dead = true;
       markers.length = 0;
       for (let seg = 0; seg < BAMBUS_BRIDGE.segments; seg++) {
         const gone = b.cells.filter((q) => q.seg === seg && q.state > 0).map((q) => q.lane);
         if (!gone.length) continue;
         const lo = b.laneEdges[Math.min(...gone)] * 6, hi = b.laneEdges[Math.max(...gone) + 1] * 6;
-        const r = Math.max(1.0, (hi - lo) / 2 - 0.6);
+        const c = (lo + hi) / 2;
+        const reach = line.length ? Math.abs(line[seg] - c) + 0.4 : (hi - lo) / 2;
+        const r = Math.max(1.0, reach - AI_DODGE_CLEARANCE - KART.width / 2);
         for (const f of [0.25, 0.75]) {
-          const m = new HoleMarker(sim.nextEntityId(), frame(track, b.main, b.s0 + (seg + f) * b.segLen, (lo + hi) / 2).pos.clone().addScaledVector(UP, 0.4), r);
+          const m = new HoleMarker(sim.nextEntityId(), frame(track, b.main, b.s0 + (seg + f) * b.segLen, c).pos.clone().addScaledVector(UP, 0.4), r);
           markers.push(m);
           sim.addEntity(m);
         }
       }
-      state.stage = Math.max(state.stage, k + 1);
-      bridgeLine(track, b, state.stage);
       const mid = track.sample(b.s0 + b.segLen * 3).pos.clone();
       sim.events.emit('track:event', { name: 'bridgeCreak', pos: mid });
     };
@@ -359,6 +415,7 @@ export const bambusScript: TrackScript = {
         for (const m of markers) m.dead = true;
         markers.length = 0;
         nextLog = 0;
+        behind.clear();
         bridgeLine(track, b, 0);
         void sim;
         return [];
@@ -395,6 +452,25 @@ export const bambusScript: TrackScript = {
           if (k.carried) continue;
           const p = k.pos;
           if (p.y < BAMBUS_GORGE.floorY && Math.abs(p.x - gx) < BAMBUS_GORGE.half && p.z > BAMBUS_GORGE.n0 && p.z < BAMBUS_GORGE.n1) respawnKart(track, k, sim);
+        }
+        // karts that ended up behind a barrier (thrown over it, slipped through a seam) never find
+        // their way back on their own: after a short grace, put them back on the road
+        for (const k of sim.karts) {
+          const L = k.loc;
+          let t = behind.get(k.id) ?? 0;
+          if (k.carried || k.race.finished || L.onRoad || !k.grounded) { behind.set(k.id, Math.max(0, t - dt * 2)); continue; }
+          const p = track.paths[L.path];
+          const row = L.hint >= 0 ? L.hint % HINT_ROWS : -1;
+          let out = false;
+          if (p && row >= 0 && row < p.count && !p.deck[row]) {
+            const e = L.lat < 0 ? p.left[row] : p.rightEdge[row];
+            if (e.kind === 'wall' || e.kind === 'fence' || e.kind === 'rail' || e.kind === 'hedge') {
+              out = Math.abs(L.lat) > L.halfWidth + (e.offset ?? EDGE_DEFAULT_OFFSET[e.kind]) + BEHIND.margin;
+            }
+          }
+          t = out ? t + dt : Math.max(0, t - dt * 2);
+          if (t > BEHIND.time) { t = 0; respawnKart(track, k, sim); }
+          behind.set(k.id, t);
         }
         // gong
         gongCool = Math.max(0, gongCool - dt);

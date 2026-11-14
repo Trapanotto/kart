@@ -104,10 +104,13 @@ export const bambusTempel: TrackDef = {
     P(222, 199, 24.8, { w: 6, bank: 0, left: rail(), right: rail() }),
     P(250, 199, 25.0, { name: 'bridge', bank: 0 }),
     P(278, 199, 24.8, { bank: 0 }),
-    P(296, 196, 24.4, { w: 6.5, bank: 6 }),
+    // inside of the right-hander off the bridge and of hairpin 2: the AI drifts in early, so the inside
+    // rail stands back on a wide shoulder and carries a catch fence (karts sliding down the banked
+    // shoulder must not hop the low rail)
+    P(296, 196, 24.4, { w: 6.5, bank: 6, right: { kind: 'rail', offset: 2.4, catchHeight: 1.6 }, shoulder: 3.2 }),
     P(311, 186, 23.7, { bank: 10 }),
     P(318, 168, 22.6, { name: 'downhill', bank: 2 }),
-    P(318, 147, 21.2, { bank: 6, w: 7 }),
+    P(318, 147, 21.2, { bank: 6, w: 7, right: rail(), shoulder: 2.5 }),
     P(309, 129, 19.8, { bank: 9 }),
     P(291, 118, 18.6, { bank: 0, name: 'leg1' }),
     P(268, 115.5, 17.6, { w: 7.5, bank: -6 }),
@@ -116,14 +119,16 @@ export const bambusTempel: TrackDef = {
     P(229.5, 94.5, 15.8, { bank: -12 }),
     P(235.5, 80, 15.1, { bank: -11 }),
     P(250, 74, 14.5, { bank: -6 }),
-    P(270, 74, 13.6, { bank: 0, name: 'leg2', w: 7 }),
+    P(270, 74, 13.6, { bank: 0, name: 'leg2', w: 7, right: { kind: 'rail', offset: 3.6, catchHeight: 1.6 }, shoulder: 4.2 }),
     P(286, 74.5, 13.0, { bank: 6 }),
     P(300, 74.5, 12.5, { name: 'hairpin2', bank: 11, w: 7.5 }),
     P(314.1, 68.6, 12.1, { bank: 12 }),
     P(320, 54.5, 11.6, { bank: 12 }),
     P(314.1, 40.4, 11.1, { bank: 11 }),
-    P(299, 34.5, 10.6, { bank: 4, name: 'leg3', w: 7 }),
-    P(285, 34.3, 10.2, { bank: 0, left: wall(1.5, 1.1, 3), right: wall(1.5, 1.1, 3), name: 'terrace' }),
+    P(299, 34.5, 10.6, { bank: 4, name: 'leg3', w: 7, right: rail(), shoulder: 2.5 }),
+    // tall catch fences over the low terrace walls: a kart that hits the ramp at an angle must not sail
+    // over the wall into the scrub beside the landing
+    P(285, 34.3, 10.2, { bank: 0, left: wall(1.5, 1.1, 6), right: wall(1.5, 1.1, 6), name: 'terrace' }),
     P(262, 34, 8.6),
     P(236, 34, 6.4, { name: 'landing' }),
     // --- Act 3: valley floor, pond, temple ------------------------------------------------
@@ -134,9 +139,10 @@ export const bambusTempel: TrackDef = {
     P(110, -8, 3.5),
     P(90, -26, 3.5, { name: 'templeApproach', bank: 4 }),
     P(72, -48, 3.5, { bank: 5, left: wall(3, 1.6), right: fence(0.6) }),
-    P(48, -64, 3.4, { bank: 4 }),
+    // same for the last corner: room on the inside for an early drift
+    P(48, -64, 3.4, { bank: 4, right: { kind: 'fence', offset: 2.4, catchHeight: 1.6 }, shoulder: 3.2 }),
     P(23, -71, 3.4, { name: 'lastCorner', bank: 7 }),
-    P(4, -63, 3.5, { bank: 7, w: 7.5 }),
+    P(4, -63, 3.5, { bank: 7, w: 7.5, right: fence(0.6), shoulder: 2.5 }),
     P(-1, -44, 3.7, { bank: 0, left: wall(3, 1.5), right: wall(3, 1.5) }),
     P(0, -22, 3.9),
   ],
@@ -158,7 +164,10 @@ export const bambusTempel: TrackDef = {
         P(64, -36.7, 3.65, { left: wall(1.2, 1.3) }),
         P(62, -36.5, 3.7, { left: 'none', right: 'none' }),
         P(40, -35, 3.8, { name: 'courtyard' }),
-        P(25, -34.4, 3.85, { left: wall(0.7, 1.3), right: wall(0.7, 1.3) }),
+        // the exit walls start inside the temple, flush with its side walls: they used to start 2 m after
+        // the temple's walls ended, and karts slipped into that slot (or hit the blunt wall end)
+        P(31, -34.75, 3.82, { left: wall(1.6, 1.3), right: wall(1.6, 1.3) }),
+        P(25, -34.4, 3.85),
         P(15, -31.5, 3.9),
         P(7.5, -22, 3.95),
       ],
@@ -173,7 +182,7 @@ export const bambusTempel: TrackDef = {
   ramps: [{ at: 'terrace-4', length: 6, height: 1.1, width: 11, trick: 26 }],
   boostPads: [
     { at: 'ledge-36', lat: 1.5, width: 3.6 },
-    { at: 'hairpin1+52', lat: -1.5, width: 3.6 },
+    { at: 'hairpin1+30', lat: -1.5, width: 3.6 },
     { at: 'leg3+2', lat: 0, width: 3.6 },
     { at: 'lastCorner+40', lat: -2.6, width: 3.6 },
   ],

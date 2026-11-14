@@ -10,9 +10,10 @@ import type { TexLib } from '../materials';
 import { cloudSea, fallRing, peaks } from './glacier/backdrop';
 import { avalancheView, cableCar, registerGlacierViews } from './glacier/events';
 import {
-  caveIceMaterial, cloudSeaMaterial, crackedIceMaterial, glacierRoadMaterial, peakMaterial, propIceMaterial, snowTerrainMaterial,
+  caveIceMaterial, cloudSeaMaterial, crackedIceMaterial, crevasseWarn, glacierRoadMaterial, peakMaterial, propIceMaterial, snowTerrainMaterial,
   wallIceMaterial,
 } from './glacier/materials';
+import { findWeather } from '../../../render/vfx/weather';
 import { buildTunnel, tunnelIcicles } from './glacier/tunnel';
 import { railMaterial, ribbonGeometry, snowFenceMaterial } from './glacier/fences';
 import { Geo } from '../meshes';
@@ -127,6 +128,22 @@ async function extend(t: BuiltTrack, ctx: RenderContext, root: THREE.Group, T: T
   });
   tunnelIcicles(t, ctx, root, caveIn, caveOut, propIce);
 
+  // --- crevasse jump: painted warning chevrons on the run-up to the ramp ----------------------
+  const ramp = a.get('ramp');
+  if (ramp !== undefined) crevasseWarn.value.set(ramp - 6 - 38, ramp - 6 - 3);
+
+  // --- no snowfall inside the glacier tunnel (main path caveIn..caveOut; the lap-2 crack is open to
+  // the sky and keeps its snow) ------------------------------------------------------------------
+  const camLoc = { path: 0, progress: 0, lat: 0, halfWidth: 8, height: 0, onRoad: true, hint: -1 };
+  const camPos = new THREE.Vector3();
+  let snowK = 1;
+  const inCave = (): boolean => {
+    ctx.camera.getWorldPosition(camPos);
+    t.locate(camPos, camLoc, camLoc);
+    if (camLoc.path !== 0 || Math.abs(camLoc.lat) > camLoc.halfWidth + 1.5 || camLoc.height > 7.5 || camLoc.height < -3) return false;
+    return camLoc.progress > caveIn + 2 && camLoc.progress < caveOut - 2;
+  };
+
   // --- lap events and life -------------------------------------------------------------------
   registerGlacierViews(propIce);
   const aval = avalancheView(t, ctx, root, snow);
@@ -136,6 +153,17 @@ async function extend(t: BuiltTrack, ctx: RenderContext, root: THREE.Group, T: T
     update(dt: number) {
       aval.update(dt);
       cable?.update(dt);
+      // fade the camera-following snow out inside the tunnel and back in outside (0.4 s)
+      const w = findWeather(ctx.scene);
+      if (w) {
+        snowK += ((inCave() ? 0 : 1) - snowK) * Math.min(1, dt / 0.12);
+        w.suppress(snowK);
+      }
+    },
+    dispose() {
+      const w = findWeather(ctx.scene);
+      if (w) w.suppress(1);
+      crevasseWarn.value.set(-1, -1);
     },
   };
 }

@@ -96,7 +96,7 @@ describe('Bambus-Tempel', () => {
     const finished: number[] = [];
     const allNames: string[][] = [];
     for (let seed = 1; seed <= seeds; seed++) {
-      const r = await createHeadlessRace({ physics: createPhysics as any, track: () => loadTrack('bambus'), seed, rules: { grace: 90 } } as any);
+      const r = await createHeadlessRace({ physics: createPhysics as any, track: () => loadTrack('bambus'), seed, rules: { grace: 30 } } as any); // finish spread is ~6-13 s now (was up to 51 s)
       const hist = new Map<number, string[]>();
       const names = new Set<string>();
       r.sim.events.on('track:event', (e) => names.add(e.name));
@@ -127,6 +127,6 @@ describe('Bambus-Tempel', () => {
     console.log('respawns', total, 'per race', (total / seeds).toFixed(2), '\n' + spots.join('\n'));
     for (const f of finished) expect(f).toBe(8);
     for (const n of allNames) expect(n).toEqual(expect.arrayContaining(['rain', 'bridgeBreak', 'templeOpen']));
-    expect(total / seeds).toBeLessThan(2);
+    expect(total / seeds).toBeLessThan(1);
   }, 900000);
 });

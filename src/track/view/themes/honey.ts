@@ -7,7 +7,7 @@ import type { RenderContext, SimEntity, View } from '../../../core/types';
 import { HALL } from '../../tracks/honigfabrik';
 import { LOD_PROPS, sourceFor } from '../props';
 import { registerTheme } from '../themes';
-import { honeyRoadMaterial, honeyTerrainMaterial, type Rect } from './honey/materials';
+import { honeyBannerMaterial, honeyRoadMaterial, honeyTerrainMaterial, type Rect } from './honey/materials';
 import { buildSetPieces } from './honey/setpieces';
 
 // big honey props have a .lod1 model (used far away and on phones)
@@ -43,6 +43,12 @@ registerTheme('honey', {
   backdropTrees: true,
   async extend(track, ctx, root, T) {
     try { await ctx.assets.load(['prop.honey_press', 'prop.honey_press.lod1', 'prop.honey_barrel']); } catch { /* placeholders */ }
+    // the kit start gate's banner is blank (white): give it the honeycomb banner
+    const banner = honeyBannerMaterial();
+    root.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (m.isMesh && (m.material as THREE.Material | undefined)?.name === 'M_start_gate_banner') m.material = banner;
+    });
     return buildSetPieces(track, ctx, root, T);
   },
 });

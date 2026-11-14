@@ -36,13 +36,32 @@ const PRESETS: Record<WeatherKind, Preset> = {
 
 export const WEATHER_KINDS = Object.keys(PRESETS) as WeatherKind[];
 
+const FIRST = new WeakMap<Scene, Weather>();
+
+/** The renderer's camera weather on `scene` (the first Weather created for it), if any. */
+export function findWeather(scene: Scene): Weather | null {
+  return FIRST.get(scene) ?? null;
+}
+
 export class Weather {
   private mesh: Mesh | null = null;
   private kind: WeatherKind | null = null;
   private density = 1;
   readonly intensity: N = uniform(1);
 
-  constructor(private scene: Scene) {}
+  constructor(private scene: Scene) {
+    // the first Weather on a scene is the renderer's camera weather (see findWeather)
+    if (!FIRST.has(scene)) FIRST.set(scene, this);
+  }
+
+  /**
+   * Fade this weather out (0) or back in (1), e.g. while the camera is inside a tunnel. Below 0.01 the
+   * mesh is hidden, so a suppressed weather costs no draw call. Additive helper for track themes.
+   */
+  suppress(k: number) {
+    this.intensity.value = k;
+    if (this.mesh) this.mesh.visible = k > 0.01;
+  }
 
   get current() { return this.kind; }
 

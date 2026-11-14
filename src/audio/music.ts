@@ -2,7 +2,7 @@
 // AudioContext clock, and exposes adaptive controls (intensity layers, tempo, transposition).
 import { drum, INSTRUMENTS, type DrumName, type InstrumentName } from './instruments';
 import { clamp, type Ctx } from './core';
-import type { BassPat, CompPat, DrumPat, PercPat, SectionDef, SongDef } from './songs';
+import type { BassPat, CompPat, DrumPat, FillPat, PercPat, SectionDef, SongDef } from './songs';
 
 export type Layer = 'drums' | 'perc' | 'bass' | 'comp' | 'lead' | 'counter';
 const LAYERS: Layer[] = ['drums', 'perc', 'bass', 'comp', 'lead', 'counter'];
@@ -88,6 +88,7 @@ export function parseSong(def: SongDef): ParsedSong {
 const BASS: Record<BassPat, string> = {
   whole: 'R - - - - - - -', half: 'R - - - F - - -', country: 'R . F . R . F .', pop: 'R - . R - . F -',
   drive: 'R R R R R R R R', walk: 'R - T - F - A -', bounce: 'R . O . R . F A', none: '',
+  sparse: 'R - - R . . F -', octave: 'R O R O R O F O', funk: 'R . O R . R F O', synco: 'R - . R - . R -',
 };
 type DrumLine = Partial<Record<DrumName, string>>;
 const DRUMS: Record<DrumPat, DrumLine> = {
@@ -98,16 +99,38 @@ const DRUMS: Record<DrumPat, DrumLine> = {
   half: { kick: 'x.........x.....', snare: '........x.......', hat: 'x...x...x...x...' },
   drive: { kick: 'x...x...x...x...', snare: '....x.......x...', hat: 'x.xxx.xxx.xxx.xx' },
   march: { kick: 'x...x...x...x...', snare: '..x...x.x.x...xx' },
+  // Bambus-Tempel
+  temple: { taiko: 'x.......x.......', block: '......x.......x.' },
+  taiko: { taiko: 'x..x....x.x.....', tom: '....x.......x...', hat: '..x...x...x...x.' },
+  taiko2: { taiko: 'x..x..x.x.x..x..', tom: '....x.......x.xx', hat: 'x.xxx.xxx.xxx.xx' },
+  // Honigfabrik
+  conveyor: { kick: 'x.......x.......', clank: '..x...x...x...x.' },
+  factory: { kick: 'x.....x...x.....', snare: '....x.......x...', hat: 'x.x.x.x.x.x.x.x.', clank: '...x......x...x.' },
+  factory2: { kick: 'x.....x.x.....x.', snare: '....x.......x...', hat: 'xxx.xxx.xxx.xxx.', clank: '..x..x....x..x..' },
+  // Gletscher-Gipfel
+  rush: { kick: 'x...x...x...x...', snare: '....x.......x...', hat: 'x.xxx.xxx.xxx.xx' },
+  avalanche: { kick: 'x.x.x...x.x.x...', snare: '....x.......x...', hat: 'xxxxxxxxxxxxxxxx', tom: '.......x.......x' },
 };
-const FILL: DrumLine = { kick: 'x.......x.......', snare: '....x...x.x.xxxx', tom: '........x.x.....' };
+const FILLS: Record<FillPat, DrumLine> = {
+  std: { kick: 'x.......x.......', snare: '....x...x.x.xxxx', tom: '........x.x.....' },
+  taiko: { taiko: 'x.....x.x...x.x.', tom: '..x.x...x.xxxxxx' },
+  clank: { kick: 'x.......x.......', snare: '....x...x.x.xxxx', clank: '..x...x.....x.x.' },
+  avalanche: { kick: 'x.x.x.x.xxxxxxxx', snare: '....x...x.x.xxxx', tom: '........x.x.x.x.' },
+};
 const PERC: Record<PercPat, DrumLine> = {
   none: {},
   claps: { clap: '....x.......x...', ohat: '..x...x...x...x.' },
   shaker: { shaker: 'x.xxx.xxx.xxx.xx', block: '......x.......x.' },
+  wood: { block: '..x..x....x..x..' },
+  rain: { shaker: 'xxxxxxxxxxxxxxxx', block: '..........x.....' },
+  press: { press: '........x.......', ohat: '..x...x...x...x.' },
+  steam: { press: '......x.......x.', clank: 'x.......x.......' },
+  ice: { sleigh: 'x.xx..x.x.xx..x.' },
 };
 const COMP: Record<CompPat, string> = {
   block: 'x-----x---x-----', stab: '....x.......x...', offbeat: '..x...x...x...x.', strum8: 'x.x.x.x.x.x.x.x.',
   pad: 'x---------------', arp: 'a.a.a.a.a.a.a.a.', arp16: 'aaaaaaaaaaaaaaaa', none: '',
+  arp3: 'a..a..a.a..a..a.', funk: 'x..x..x...x..x..',
 };
 const COUNTER = '....x.......x.x.';
 
@@ -284,7 +307,7 @@ export class Music {
     if (step === 0 || (step === 8 && bar.chords.length > 1)) p.voicing = this.voice(chord, key, p.voicing);
 
     // drums
-    const lines = sd.fill && lastBar ? FILL : DRUMS[sd.drums];
+    const lines = sd.fill && lastBar ? FILLS[def.fill ?? 'std'] : DRUMS[sd.drums];
     for (const k in lines) {
       const c = lines[k as DrumName]![step];
       if (c === 'x' || c === 'X') {

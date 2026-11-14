@@ -5,7 +5,7 @@ import { reverbImpulse } from './core';
 import { PlayerEngine } from './engine';
 import { findClashes, Music } from './music';
 import { Sfx } from './sfx';
-import { SONGS, type SongDef } from './songs';
+import { RACE_SONGS, SONGS, type SongDef } from './songs';
 
 const SR = 44100;
 const db = (v: number) => (v > 0 ? 20 * Math.log10(v) : -Infinity);
@@ -83,12 +83,12 @@ export async function runAudioCheck(part = 'all'): Promise<string> {
       (quiet.length ? `, LEISE TAKTE: ${quiet.join(',')}` : ', keine stillen Takte') + (peak > 0.89 ? ' ACHTUNG: wenig Reserve' : ''));
   }
   // Final-lap variant and low intensity
-  if (want('final')) {
-    const buf = await renderSong(SONGS.kleeblatt, { from: 12, bars: 8, final: true });
+  if (want('final')) for (const def of Object.values(RACE_SONGS)) {
+    const buf = await renderSong(def, { from: 12, bars: 8, final: true });
     const s = stats(buf);
-    lines.push(`Musik kleeblatt (letzte Runde): Spitze ${db(s.peak).toFixed(1)} dBFS, RMS ${db(s.rms).toFixed(1)} dB`);
-    const low = stats(await renderSong(SONGS.kleeblatt, { bars: 8, intensity: 0.12 }));
-    lines.push(`Musik kleeblatt (Countdown-Intensität): RMS ${db(low.rms).toFixed(1)} dB, Spitze ${db(low.peak).toFixed(1)} dBFS`);
+    lines.push(`Musik ${def.id} (letzte Runde): Spitze ${db(s.peak).toFixed(1)} dBFS, RMS ${db(s.rms).toFixed(1)} dB`);
+    const low = stats(await renderSong(def, { bars: 8, intensity: 0.12 }));
+    lines.push(`Musik ${def.id} (Countdown-Intensität): RMS ${db(low.rms).toFixed(1)} dB, Spitze ${db(low.peak).toFixed(1)} dBFS`);
   }
 
   // Effects (live chain: sfx volume 0.95 at full setting, master 0.9)

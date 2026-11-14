@@ -78,7 +78,9 @@ function mesh(g: THREE.BufferGeometry, m: THREE.Material, sx = 1, sy = sx, sz = 
 function model(ctx: RenderContext, name: string, fallback: () => THREE.Object3D): THREE.Object3D {
   if (ctx.assets.has(name)) {
     const m = ctx.assets.model(name);
-    m.traverse((o) => { if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).castShadow = true; });
+    // Phones: items (36 item boxes alone) stay out of the shadow map.
+    const cast = ctx.quality.tier !== 'mobile';
+    m.traverse((o) => { if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).castShadow = cast; });
     return m;
   }
   return fallback();

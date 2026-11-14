@@ -533,6 +533,18 @@ export class BuiltTrack implements TrackRuntime {
     return out;
   }
 
+  /**
+   * Cheap test before a full projection: true if v is certainly further than `reach` from the
+   * footprint of segment a (triangle inequality around the segment start, so never a false reject).
+   */
+  private farFrom(p: BuiltPath, a: number, v: Vector3, reach: number): boolean {
+    const b = p.closed ? (a + 1) % p.count : a + 1;
+    const A = p.pos[a];
+    const r = A.distanceTo(p.pos[b]) + Math.max(p.hw[a], p.hw[b]) + reach;
+    const dx = v.x - A.x, dy = v.y - A.y, dz = v.z - A.z;
+    return dx * dx + dy * dy + dz * dz > r * r;
+  }
+
   /** Branch roads sink 2 cm per level where they overlap a road of a lower index. */
   private overlapDrop(p: BuiltPath, v: Vector3): number {
     const g = this.grid;
@@ -543,6 +555,7 @@ export class BuiltTrack implements TrackRuntime {
       const v0 = g.items[k];
       const q = Math.floor(v0 / HINT_PATH);
       if (q >= p.index) continue;
+      if (this.farFrom(this.paths[q], v0 % HINT_PATH, v, 1.1)) continue;
       this.project(this.paths[q], v0 % HINT_PATH, v, OV);
       // inside the other road's footprint: stay at least 2 cm (per level) below its surface
       if (OV.e < 0.05 && Math.abs(OV.h) < 1) return Math.max(0, OV.h + 0.02 * (p.index - q));
@@ -569,6 +582,7 @@ export class BuiltTrack implements TrackRuntime {
         if (p.closed) d = Math.min(d, p.count - d);
         if (d < gap) continue;
       }
+      if (this.farFrom(p, a, v, 1.5 * margin + maxDy)) continue;
       this.project(p, a, v, OV);
       if (OV.e > margin || Math.abs(OV.h) > maxDy) continue;
       // junction rows: a branch end and the main road share the start/end
@@ -644,14 +658,21 @@ export class BuiltTrack implements TrackRuntime {
       const px = (k: number) => cx[idx(k)] + rx[idx(k)] * lat[idx(k)];
       const pz = (k: number) => cz[idx(k)] + rz[idx(k)] * lat[idx(k)];
       const pinned = (k: number) => !p.closed && (k < 3 || k > m - 4);
+      // Relaxation (the hot loop of track loading): current points live in X/Z, neighbours are
+      // looked up through index tables instead of closures.
+      const X = Float64Array.from(cx), Z = Float64Array.from(cz);
+      const n2 = new Int32Array(m), n1 = new Int32Array(m), p1 = new Int32Array(m), p2 = new Int32Array(m);
+      const free = new Uint8Array(m);
+      for (let k = 0; k < m; k++) { n2[k] = idx(k - 2); n1[k] = idx(k - 1); p1[k] = idx(k + 1); p2[k] = idx(k + 2); free[k] = pinned(k) ? 0 : 1; }
       for (let it = 0; it < 1500; it++) {
         for (let k = 0; k < m; k++) {
-          if (pinned(k)) continue;
-          const tx = (-px(k - 2) + 4 * px(k - 1) + 4 * px(k + 1) - px(k + 2)) / 6;
-          const tz = (-pz(k - 2) + 4 * pz(k - 1) + 4 * pz(k + 1) - pz(k + 2)) / 6;
+          if (!free[k]) continue;
+          const tx = (-X[n2[k]] + 4 * X[n1[k]] + 4 * X[p1[k]] - X[p2[k]]) / 6;
+          const tz = (-Z[n2[k]] + 4 * Z[n1[k]] + 4 * Z[p1[k]] - Z[p2[k]]) / 6;
           const want = (tx - cx[k]) * rx[k] + (tz - cz[k]) * rz[k];
           const v = lat[k] + (want - lat[k]) * 1.2;
-          lat[k] = Math.max(-lim[k], Math.min(lim[k], v));
+          const l = Math.max(-lim[k], Math.min(lim[k], v));
+          lat[k] = l; X[k] = cx[k] + rx[k] * l; Z[k] = cz[k] + rz[k] * l;
         }
       }
       // pull towards boost pads on this path

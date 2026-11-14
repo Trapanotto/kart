@@ -4,9 +4,14 @@
 # Space: Blender character space, origin = seat point (driver root), Z up,
 # front = -Y, +X = character's left.
 import math
+import os
 import numpy as np
 
 import sdf
+
+# Level of detail: 0 = full model, 1 = low-detail variant for opponents on phones (`--lod 1`).
+# Read from the environment so module reloads inside the build scripts keep it.
+LOD = int(os.environ.get('ACTORS_LOD', '0'))
 from sdf import v3, ellipsoid, round_cone, capsule, sphere, rot_euler, rot_to
 
 # Steering wheel relative to the seat (must match common.SEAT / WHEEL_C).
@@ -177,6 +182,8 @@ class Part:
 
 
 def uv_sphere_np(seg=20, rings=12):
+    if LOD:
+        seg, rings = max(6, seg // 2), max(4, rings // 2)
     V = []
     for i in range(rings + 1):
         th = math.pi * i / rings
@@ -221,6 +228,8 @@ def ellipsoid_part(c, r, R=None, col='#111111', bone='head', seg=20, rings=12, m
 
 
 def tube_np(pts, radius, seg=8):
+    if LOD:
+        seg = max(3, (seg + 1) // 2)
     pts = v3(pts)
     n = len(pts)
     rad = np.broadcast_to(np.asarray(radius, dtype=float), (n,))

@@ -294,3 +294,53 @@ export function glowMaterial(hex = '#ffcf7a', k = 2): THREE.MeshStandardNodeMate
 /** Uniform 0..1 for pulsing things from JS. */
 export function pulseUniform() { return uniform(0); }
 export { min };
+
+/**
+ * Start gate banner (replaces the kit's blank 'M_start_gate_banner'): honeycomb on amber, bee stripes at
+ * both ends, a glowing golden hex in the middle, dark brown hems with honey drips. Purely procedural
+ * (no texture, no extra geometry) and mirror-symmetric, so it reads the same from both faces (the kit
+ * banner's planar UVs are mirrored on the back face). UV 0..1 across the 18.6 x 2.05 m quad.
+ */
+export function honeyBannerMaterial(): THREE.MeshStandardNodeMaterial {
+  const m = new THREE.MeshStandardNodeMaterial({ side: THREE.DoubleSide });
+  m.name = 'M_honey_gate_banner';
+  const W = 18.6, H = 2.05;
+  const u: Node = uv().x, v: Node = uv().y;
+  const px: Node = abs(u.sub(0.5)).mul(W); // metres from the centre, mirrored
+  const py: Node = v.mul(H);
+  // honeycomb: hex grid (flat rows), cell 0.42 m across
+  const cs = 0.24;
+  const p: Node = vec2(px, py).div(cs);
+  const s: Node = vec2(1, 1.7320508);
+  const a: Node = p.sub(s.mul(floor(p.div(s)).add(0.5)));
+  const pb: Node = p.sub(s.mul(0.5));
+  const b: Node = pb.sub(s.mul(floor(pb.div(s)).add(0.5)));
+  const g: Node = dot(a, a).lessThan(dot(b, b)).select(a, b);
+  const ag: Node = abs(g);
+  const hex: Node = max(dot(ag, vec2(0.5, 0.8660254)), ag.x);
+  const comb: Node = smoothstep(0.4, 0.47, hex);
+  const cellShade: Node = float(1).sub(hex.mul(0.5)); // cells glow a little towards their centre
+  let col: Node = mix(color('#f0a01a').mul(cellShade.mul(0.35).add(0.75)), color('#9a5208'), comb);
+  // golden hex emblem in the middle with a dark outline
+  const e: Node = vec2(px, py.sub(H / 2)).div(0.82);
+  const ae: Node = abs(e);
+  const eh: Node = max(dot(ae, vec2(0.5, 0.8660254)), ae.x);
+  const emblem: Node = float(1).sub(smoothstep(0.9, 0.93, eh));
+  const outline: Node = smoothstep(0.84, 0.87, eh).mul(emblem);
+  col = mix(col, mix(color('#ffd24a'), color('#3a2108'), outline), emblem);
+  // bee stripes towards both ends (diagonal, mirrored)
+  const ends: Node = smoothstep(W / 2 - 2.0, W / 2 - 1.95, px);
+  const stripe: Node = step(0.5, fract(px.add(py).mul(1.25)));
+  col = mix(col, mix(color('#2a1a0a'), color('#ffd23a'), stripe), ends);
+  // hems: dark brown top and bottom, honey drips hanging off the top hem
+  const drip: Node = sin(px.mul(3.1)).abs().pow(10).mul(0.22).add(sin(px.mul(1.3).add(0.7)).abs().pow(16).mul(0.14));
+  const dripLen: Node = drip.mul(H * 0.45);
+  const top: Node = smoothstep(float(H - 0.16).sub(dripLen), float(H - 0.15).sub(dripLen), py);
+  const bottom: Node = float(1).sub(smoothstep(0.12, 0.13, py));
+  const hem: Node = max(top, bottom);
+  col = mix(col, color('#4a2a0c'), hem);
+  m.colorNode = col;
+  m.roughnessNode = mix(float(0.55), float(0.3), emblem.add(top.mul(0.6)).clamp(0, 1));
+  m.emissiveNode = color('#ffb020').mul(emblem.mul(float(1).sub(outline)).mul(0.35));
+  return m;
+}

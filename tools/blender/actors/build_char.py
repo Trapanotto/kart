@@ -1,5 +1,6 @@
 # Builds one or all drivers: mesh -> colours -> rig -> clips -> GLB (+ preview renders).
-# Usage: blender -b -P tools/blender/actors/build_char.py -- <id|all> [--preview] [--export] [--sheet]
+# Usage: blender -b -P tools/blender/actors/build_char.py -- <id|all> [--preview] [--export] [--sheet] [--lod 1]
+# --lod 1 writes char.<id>.lod1.glb: same rig, clips, materials and morphs, about 2.5-3 k triangles.
 import os
 import sys
 import time
@@ -13,6 +14,9 @@ import numpy as np
 from mathutils import Vector
 
 import common as C
+
+LOD = C.lod_arg(C.args())   # before anatomy is (re)loaded below
+
 import sdf
 import anatomy as A
 import characters as CH
@@ -28,11 +32,17 @@ def vnormals(obj):
     return a.reshape(-1, 3).astype(np.float64)
 
 
+# LOD 1 budgets: fur keeps about 21 % of its triangles, accessories 250 (face parts are
+# coarsened in anatomy.uv_sphere_np / tube_np).
+FUR_LOD1 = 0.21
+CLOTH_TRIS = (900, 250)
+
+
 def build_fur(spec):
     t0 = time.time()
     V, Q = sdf.mesh_sdf(spec.fur, spec.h)
     obj = C.mesh_from_np(spec.id + '_fur', V, Q)
-    C.decimate(obj, spec.tris)
+    C.decimate(obj, int(spec.tris * FUR_LOD1) if LOD else spec.tris)
     C.shade_smooth(obj)
     P = C.verts_np(obj)
     col, bones = sdf.blend_attributes(spec.fur, P)
@@ -89,7 +99,7 @@ def build_cloth(spec):
     for i, prims in enumerate(spec.cloth):
         V, Q = sdf.mesh_sdf(prims, 0.005)
         o = C.mesh_from_np('%s_acc%d' % (spec.id, i), V, Q)
-        C.decimate(o, 900)
+        C.decimate(o, CLOTH_TRIS[min(LOD, 1)])
         C.shade_smooth(o)
         P = C.verts_np(o)
         col, bones = sdf.blend_attributes(prims, P)
@@ -168,9 +178,15 @@ if __name__ == '__main__':
             arm = rig.rig_character(spec, objs)
             if '--export' in a:
                 rig.animate(spec, arm, objs)
-                C.export_glb(os.path.join(C.MODELS, 'char.%s.glb' % cid), [arm] + objs)
+                # LOD 1: clips sampled at 15 fps (every clip length is an even number of 30 fps frames,
+                # so the last key still lands on the clip end); coarser Draco position grid.
+                out = os.path.join(C.MODELS, 'char.%s%s.glb' % (cid, C.lod_suffix(LOD)))
+                C.export_glb(out, [arm] + objs, **(dict(frame_step=2, pos_q=12) if LOD else {}))
+                if LOD:
+                    import glb_slim   # drop rest-pose channels, int16 rotations
+                    glb_slim.slim_animations(out)
         if '--preview' in a:
-            preview(cid, objs)
+            preview(cid, objs, C.lod_suffix(LOD))
 
 
 def lineup(ids, tag='lineup'):

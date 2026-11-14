@@ -1,5 +1,6 @@
 # Builds the themed karts: body, four wheels, steering wheel, seat and exhaust empties.
-# Usage: blender -b -P tools/blender/actors/build_kart.py -- <id|all> [--preview] [--export] [--driver]
+# Usage: blender -b -P tools/blender/actors/build_kart.py -- <id|all> [--preview] [--export] [--driver] [--lod 1]
+# --lod 1 writes kart.<id>.lod1.glb: same nodes and transforms, about 2.3 k triangles, 256 px texture.
 import os
 import sys
 import time
@@ -13,6 +14,9 @@ import numpy as np
 from mathutils import Matrix, Vector
 
 import common as C
+
+LOD = C.lod_arg(C.args())
+
 import sdf
 import anatomy as A
 import karts as K
@@ -21,6 +25,8 @@ for m in (sdf, A, K):
     importlib.reload(m)
 
 IDS = ['sloth', 'sheep', 'redpanda', 'hedgehog', 'penguin', 'capybara', 'otter', 'axolotl']
+# (body tris, body texture px, steering tris) per LOD; LOD 1 wheels come from K.wheel_mesh(lod=1)
+BUDGET = {0: (4600, 512, 600), 1: (1250, 256, 160)}
 
 
 def sdf_object(name, prims, h, tris, paints=(), ao=0.0, smooth_iters=0, tex=0, mat=None):
@@ -87,24 +93,25 @@ def build(cid):
     root = bpy.data.objects.new('kart', None)
     C.link(root)
     t0 = time.time()
-    body = sdf_object('body', K.body_prims(t) + t.parts, 0.008, 4600, body_paints(t), ao=0.45, tex=512,
+    body_tris, tex, steer_tris = BUDGET[min(LOD, 1)]
+    body = sdf_object('body', K.body_prims(t) + t.parts, 0.008, body_tris, body_paints(t), ao=0.45, tex=tex,
                       mat=dict(rough=0.32, coat=0.4))
     body.parent = root
     wheels = []
     for nm, y, R, W, x in (('wheel_fl', K.FRONT_Y, K.FRONT_R, K.FRONT_W, K.TRACK_F), ('wheel_fr', K.FRONT_Y, K.FRONT_R, K.FRONT_W, -K.TRACK_F),
                            ('wheel_rl', K.REAR_Y, K.REAR_R, K.REAR_W, K.TRACK_R), ('wheel_rr', K.REAR_Y, K.REAR_R, K.REAR_W, -K.TRACK_R)):
-        Vw, Fw, Cw = K.wheel_mesh(t, R, W)
+        Vw, Fw, Cw = K.wheel_mesh(t, R, W, lod=LOD)
         w = C.mesh_from_np(nm, Vw, Fw)
         C.set_colors(w, np.array([sdf.srgb_to_lin(c) for c in Cw]))
         C.shade_smooth(w)
-        w.data.set_sharp_from_angle(angle=math.radians(40))
+        w.data.set_sharp_from_angle(angle=math.radians(50 if LOD else 40))
         if x < 0:
             mirror_x(w)
         C.set_material(w, rubber)
         w.parent = root
         w.location = (x, y, R)
         wheels.append(w)
-    st = sdf_object('steering', K.steering_prims(t), 0.005, 600)
+    st = sdf_object('steering', K.steering_prims(t), 0.005, steer_tris)
     C.set_material(st, paint)
     st.parent = root
     st.matrix_basis = Matrix.Translation(Vector(K.WHEEL_C)) @ Matrix([list(r) for r in K.steering_frame()]).to_4x4()
@@ -155,8 +162,9 @@ if __name__ == '__main__':
         C.reset()
         root, objs = build(cid)
         if '--export' in a:
-            C.export_glb(os.path.join(C.MODELS, 'kart.%s.glb' % cid), [root] + objs, anim=False, images=True)
+            C.export_glb(os.path.join(C.MODELS, 'kart.%s%s.glb' % (cid, C.lod_suffix(LOD))), [root] + objs, anim=False,
+                         images=True, **(dict(pos_q=12) if LOD else {}))
         if '--preview' in a:
             if '--driver' in a:
                 add_driver(cid, objs[[o.name for o in objs].index('seat')])
-            preview(cid, root)
+            preview(cid, root, C.lod_suffix(LOD))

@@ -199,6 +199,8 @@ const MOBILE_SHADOW = new Set(['tree_oak', 'tree_birch', 'tree_apple', 'farmhous
 /** Props that have a `.lod1` model; used beyond FAR metres from the road (always on mobile). */
 export const LOD_PROPS = new Set(['tree_oak', 'tree_birch', 'tree_apple', 'farmhouse', 'grandstand', 'silo', 'windmill', 'barn']);
 const FAR = 26;
+/** Instanced groups above this many triangles are split into square ground cells of CHUNK metres. */
+const CHUNK_MIN_TRIS = 5000, CHUNK = 110;
 
 export interface PropBatch {
   tag?: string;
@@ -257,9 +259,19 @@ export function buildProps(propsIn: PlacedProp[], ctx: RenderContext, parent: TH
     src.updateMatrixWorld(true);
     const meshes: THREE.Mesh[] = [];
     src.traverse((o) => { if ((o as THREE.Mesh).isMesh && !(o as THREE.SkinnedMesh).isSkinnedMesh) meshes.push(o as THREE.Mesh); });
-    for (const mesh of meshes) {
-      const im = new THREE.InstancedMesh(mesh.geometry, mesh.material, list.length);
-      list.forEach((p, k) => {
+    // An instanced mesh is culled as a whole. Heavy groups are therefore split into ground cells,
+    // so that only the scenery in view is drawn instead of every tree of the track.
+    let tris = 0;
+    for (const mesh of meshes) tris += (mesh.geometry.index ? mesh.geometry.index.count : mesh.geometry.attributes.position.count) / 3;
+    const chunks = new Map<string, PlacedProp[]>();
+    const split = tris * list.length > CHUNK_MIN_TRIS;
+    for (const p of list) {
+      const ck = split ? `${Math.floor(p.x / CHUNK)},${Math.floor(p.z / CHUNK)}` : '';
+      (chunks.get(ck) ?? chunks.set(ck, []).get(ck)!).push(p);
+    }
+    for (const part of chunks.values()) for (const mesh of meshes) {
+      const im = new THREE.InstancedMesh(mesh.geometry, mesh.material, part.length);
+      part.forEach((p, k) => {
         q.setFromAxisAngle(up, p.yaw);
         m4.compose(new THREE.Vector3(p.x, p.y, p.z), q, new THREE.Vector3(p.scale, p.scale, p.scale)).multiply(mesh.matrixWorld);
         im.setMatrixAt(k, m4);

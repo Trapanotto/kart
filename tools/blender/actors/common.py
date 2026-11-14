@@ -10,7 +10,7 @@ from mathutils import Matrix, Vector
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
-MODELS = os.path.join(ROOT, 'public', 'assets', 'models')
+MODELS = os.environ.get('ACTORS_MODELS', os.path.join(ROOT, 'public', 'assets', 'models'))
 PORTRAITS = os.path.join(ROOT, 'public', 'assets', 'portraits')
 PREVIEW = os.environ.get('ACTORS_PREVIEW', os.path.join(ROOT, 'tools', 'blender', 'actors', '_preview'))
 
@@ -25,6 +25,17 @@ STEER_MAX = 0.75                          # steering wheel rotation at full lock
 def args():
     a = sys.argv
     return a[a.index('--') + 1:] if '--' in a else []
+
+
+def lod_arg(a):
+    """`--lod N` (0 = full detail, 1 = phone opponents). Sets ACTORS_LOD so module reloads keep it."""
+    n = int(a[a.index('--lod') + 1]) if '--lod' in a else int(os.environ.get('ACTORS_LOD', '0'))
+    os.environ['ACTORS_LOD'] = str(n)
+    return n
+
+
+def lod_suffix(lod):
+    return '.lod%d' % lod if lod else ''
 
 
 def reset():
@@ -301,7 +312,7 @@ def render(path, fmt='PNG', quality=90):
 
 
 # ---------------------------------------------------------------- export
-def export_glb(path, objs, anim=True, draco=True, images=False):
+def export_glb(path, objs, anim=True, draco=True, images=False, frame_step=1, pos_q=13):
     for o in bpy.context.scene.objects:
         o.select_set(False)
     for o in objs:
@@ -315,12 +326,12 @@ def export_glb(path, objs, anim=True, draco=True, images=False):
               export_morph_normal=False, export_def_bones=True, export_leaf_bone=False,
               export_extras=False, export_cameras=False, export_lights=False)
     if anim:
-        kw.update(export_animation_mode='ACTIONS', export_frame_step=1, export_force_sampling=True,
+        kw.update(export_animation_mode='ACTIONS', export_frame_step=frame_step, export_force_sampling=True,
                   export_optimize_animation_size=True, export_anim_slide_to_zero=True,
                   export_nla_strips=False)
     if draco:
         kw.update(export_draco_mesh_compression_enable=True, export_draco_mesh_compression_level=7,
-                  export_draco_position_quantization=13, export_draco_normal_quantization=8,
+                  export_draco_position_quantization=pos_q, export_draco_normal_quantization=8,
                   export_draco_color_quantization=8, export_draco_generic_quantization=10)
     bpy.ops.export_scene.gltf(**kw)
     print('EXPORTED', path, os.path.getsize(path) // 1024, 'KB')

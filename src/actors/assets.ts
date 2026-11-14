@@ -142,10 +142,18 @@ export function createAssets(): ActorAssetLibrary {
 }
 
 /** Everything a race needs: all drivers and karts on the grid plus the item models. */
-export function raceAssets(config: RaceConfig): string[] {
+/** Phones draw the opponents with the low-detail models (a tenth of the triangles). */
+export function actorLod(isHuman: boolean, tier: QualityTier): string {
+  return !isHuman && tier === 'mobile' ? '.lod1' : '';
+}
+
+export function raceAssets(config: RaceConfig, tier: QualityTier = 'high'): string[] {
   const ids = config.grid ?? CHARACTERS.map((c) => c.id);
   const names: string[] = [];
-  for (const id of new Set([...ids, config.player])) names.push(`char.${id}`, `kart.${id}`);
+  for (const id of new Set([...ids, config.player])) {
+    const lod = actorLod(id === config.player, tier);
+    names.push(`char.${id}${lod}`, `kart.${id}${lod}`);
+  }
   for (const i of ITEM_MODELS) names.push(`item.${i}`);
   return names;
 }
