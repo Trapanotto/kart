@@ -25,6 +25,562 @@
   ],
   "tris": 4608
  },
+ "bamboo_arch": {
+  "bytes": 37788,
+  "file": "prop.bamboo_arch.glb",
+  "materials": [
+   "M_bamboo_arch_foliage"
+  ],
+  "max_gltf": [
+   2.57,
+   11.3,
+   6.84
+  ],
+  "min_gltf": [
+   -2.91,
+   -0.16,
+   -1.29
+  ],
+  "nodes": [
+   "bamboo_arch"
+  ],
+  "size_m": [
+   5.49,
+   11.45,
+   8.13
+  ],
+  "tris": 1168
+ },
+ "bamboo_arch.lod1": {
+  "bytes": 10528,
+  "file": "prop.bamboo_arch.lod1.glb",
+  "materials": [
+   "M_bamboo_arch_foliage"
+  ],
+  "max_gltf": [
+   1.88,
+   12.11,
+   5.15
+  ],
+  "min_gltf": [
+   -2.03,
+   -0.17,
+   -1.2
+  ],
+  "nodes": [
+   "bamboo_arch"
+  ],
+  "size_m": [
+   3.91,
+   12.28,
+   6.35
+  ],
+  "tris": 231
+ },
+ "bamboo_bridge": {
+  "bytes": 15376,
+  "file": "prop.bamboo_bridge.glb",
+  "materials": [
+   "M_bamboo_bridge"
+  ],
+  "max_gltf": [
+   7.9,
+   3.85,
+   29.24
+  ],
+  "min_gltf": [
+   -7.9,
+   -7.0,
+   -29.24
+  ],
+  "nodes": [
+   "bamboo_bridge"
+  ],
+  "size_m": [
+   15.8,
+   10.85,
+   58.48
+  ],
+  "tris": 836
+ },
+ "bamboo_clump": {
+  "bytes": 31572,
+  "file": "prop.bamboo_clump.glb",
+  "materials": [
+   "M_bamboo_clump_foliage"
+  ],
+  "max_gltf": [
+   1.91,
+   11.3,
+   2.24
+  ],
+  "min_gltf": [
+   -2.08,
+   -0.15,
+   -2.09
+  ],
+  "nodes": [
+   "bamboo_clump"
+  ],
+  "size_m": [
+   3.99,
+   11.45,
+   4.33
+  ],
+  "tris": 928
+ },
+ "bamboo_clump.lod1": {
+  "bytes": 5880,
+  "file": "prop.bamboo_clump.lod1.glb",
+  "materials": [
+   "M_bamboo_clump_foliage"
+  ],
+  "max_gltf": [
+   1.51,
+   11.23,
+   1.68
+  ],
+  "min_gltf": [
+   -1.62,
+   -0.15,
+   -1.79
+  ],
+  "nodes": [
+   "bamboo_clump"
+  ],
+  "size_m": [
+   3.12,
+   11.39,
+   3.46
+  ],
+  "tris": 122
+ },
+ "bamboo_fern": {
+  "bytes": 2208,
+  "file": "prop.bamboo_fern.glb",
+  "materials": [
+   "M_bamboo_fern_foliage"
+  ],
+  "max_gltf": [
+   0.69,
+   0.37,
+   0.66
+  ],
+  "min_gltf": [
+   -0.58,
+   0.02,
+   -0.71
+  ],
+  "nodes": [
+   "bamboo_fern"
+  ],
+  "size_m": [
+   1.27,
+   0.35,
+   1.38
+  ],
+  "tris": 14
+ },
+ "bamboo_lantern_hang": {
+  "bytes": 10452,
+  "file": "prop.bamboo_lantern_hang.glb",
+  "materials": [
+   "M_bamboo_lantern_hang",
+   "M_bamboo_lantern_hang_emit"
+  ],
+  "max_gltf": [
+   0.8,
+   0.0,
+   0.78
+  ],
+  "min_gltf": [
+   -0.8,
+   -1.9,
+   -0.78
+  ],
+  "nodes": [
+   "bamboo_lantern_hang"
+  ],
+  "size_m": [
+   1.6,
+   1.9,
+   1.56
+  ],
+  "tris": 464
+ },
+ "bamboo_lantern_paper": {
+  "bytes": 6396,
+  "file": "prop.bamboo_lantern_paper.glb",
+  "materials": [
+   "M_bamboo_lantern_paper",
+   "M_bamboo_lantern_paper_emit"
+  ],
+  "max_gltf": [
+   0.34,
+   2.8,
+   1.12
+  ],
+  "min_gltf": [
+   -0.34,
+   -0.2,
+   -0.1
+  ],
+  "nodes": [
+   "bamboo_lantern_paper"
+  ],
+  "size_m": [
+   0.68,
+   3.0,
+   1.22
+  ],
+  "tris": 228
+ },
+ "bamboo_lantern_stone": {
+  "bytes": 8276,
+  "file": "prop.bamboo_lantern_stone.glb",
+  "materials": [
+   "M_bamboo_lantern_stone",
+   "M_bamboo_lantern_stone_emit"
+  ],
+  "max_gltf": [
+   0.54,
+   2.4,
+   0.62
+  ],
+  "min_gltf": [
+   -0.54,
+   0.0,
+   -0.62
+  ],
+  "nodes": [
+   "bamboo_lantern_stone"
+  ],
+  "size_m": [
+   1.07,
+   2.4,
+   1.24
+  ],
+  "tris": 252
+ },
+ "bamboo_log": {
+  "bytes": 11576,
+  "file": "prop.bamboo_log.glb",
+  "materials": [
+   "M_bamboo_log"
+  ],
+  "max_gltf": [
+   0.44,
+   0.42,
+   1.9
+  ],
+  "min_gltf": [
+   -0.44,
+   -0.42,
+   -1.9
+  ],
+  "nodes": [
+   "bamboo_log"
+  ],
+  "size_m": [
+   0.88,
+   0.84,
+   3.79
+  ],
+  "tris": 720
+ },
+ "bamboo_maple": {
+  "bytes": 36620,
+  "file": "prop.bamboo_maple.glb",
+  "materials": [
+   "M_bamboo_maple_foliage"
+  ],
+  "max_gltf": [
+   2.15,
+   4.64,
+   2.17
+  ],
+  "min_gltf": [
+   -2.08,
+   -0.12,
+   -2.18
+  ],
+  "nodes": [
+   "bamboo_maple"
+  ],
+  "size_m": [
+   4.22,
+   4.76,
+   4.35
+  ],
+  "tris": 991
+ },
+ "bamboo_maple.lod1": {
+  "bytes": 12532,
+  "file": "prop.bamboo_maple.lod1.glb",
+  "materials": [
+   "M_bamboo_maple_foliage"
+  ],
+  "max_gltf": [
+   2.05,
+   4.51,
+   2.12
+  ],
+  "min_gltf": [
+   -2.05,
+   -0.12,
+   -2.12
+  ],
+  "nodes": [
+   "bamboo_maple"
+  ],
+  "size_m": [
+   4.11,
+   4.63,
+   4.24
+  ],
+  "tris": 345
+ },
+ "bamboo_pagoda": {
+  "bytes": 14304,
+  "file": "prop.bamboo_pagoda.glb",
+  "materials": [
+   "M_bamboo_pagoda"
+  ],
+  "max_gltf": [
+   4.3,
+   15.35,
+   4.3
+  ],
+  "min_gltf": [
+   -4.3,
+   -0.3,
+   -4.3
+  ],
+  "nodes": [
+   "bamboo_pagoda"
+  ],
+  "size_m": [
+   8.6,
+   15.65,
+   8.6
+  ],
+  "tris": 872
+ },
+ "bamboo_pagoda.lod1": {
+  "bytes": 8804,
+  "file": "prop.bamboo_pagoda.lod1.glb",
+  "materials": [
+   "M_bamboo_pagoda"
+  ],
+  "max_gltf": [
+   4.3,
+   15.35,
+   4.3
+  ],
+  "min_gltf": [
+   -4.3,
+   -0.3,
+   -4.3
+  ],
+  "nodes": [
+   "bamboo_pagoda"
+  ],
+  "size_m": [
+   8.6,
+   15.65,
+   8.6
+  ],
+  "tris": 404
+ },
+ "bamboo_rock_a": {
+  "bytes": 5644,
+  "file": "prop.bamboo_rock_a.glb",
+  "materials": [
+   "M_bamboo_rock_a"
+  ],
+  "max_gltf": [
+   1.57,
+   1.48,
+   1.35
+  ],
+  "min_gltf": [
+   -1.55,
+   -0.14,
+   -1.35
+  ],
+  "nodes": [
+   "bamboo_rock_a"
+  ],
+  "size_m": [
+   3.12,
+   1.62,
+   2.7
+  ],
+  "tris": 140
+ },
+ "bamboo_rock_b": {
+  "bytes": 6844,
+  "file": "prop.bamboo_rock_b.glb",
+  "materials": [
+   "M_bamboo_rock_b"
+  ],
+  "max_gltf": [
+   0.86,
+   0.79,
+   0.68
+  ],
+  "min_gltf": [
+   -0.76,
+   -0.15,
+   -0.73
+  ],
+  "nodes": [
+   "bamboo_rock_b"
+  ],
+  "size_m": [
+   1.62,
+   0.94,
+   1.41
+  ],
+  "tris": 140
+ },
+ "bamboo_stalks": {
+  "bytes": 9640,
+  "file": "prop.bamboo_stalks.glb",
+  "materials": [
+   "M_bamboo_stalks_foliage"
+  ],
+  "max_gltf": [
+   1.3,
+   7.97,
+   1.41
+  ],
+  "min_gltf": [
+   -1.52,
+   -0.15,
+   -1.42
+  ],
+  "nodes": [
+   "bamboo_stalks"
+  ],
+  "size_m": [
+   2.82,
+   8.12,
+   2.83
+  ],
+  "tris": 274
+ },
+ "bamboo_stalks.lod1": {
+  "bytes": 5360,
+  "file": "prop.bamboo_stalks.lod1.glb",
+  "materials": [
+   "M_bamboo_stalks_foliage"
+  ],
+  "max_gltf": [
+   1.3,
+   7.97,
+   1.18
+  ],
+  "min_gltf": [
+   -1.52,
+   -0.15,
+   -1.42
+  ],
+  "nodes": [
+   "bamboo_stalks"
+  ],
+  "size_m": [
+   2.82,
+   8.12,
+   2.6
+  ],
+  "tris": 124
+ },
+ "bamboo_temple": {
+  "bytes": 64208,
+  "file": "prop.bamboo_temple.glb",
+  "materials": [
+   "M_bamboo_temple",
+   "M_bamboo_temple_emit"
+  ],
+  "max_gltf": [
+   7.7,
+   11.05,
+   16.0
+  ],
+  "min_gltf": [
+   -7.7,
+   -0.3,
+   -16.0
+  ],
+  "nodes": [
+   "bamboo_temple",
+   "gong",
+   "door_l",
+   "door_r"
+  ],
+  "size_m": [
+   15.4,
+   11.35,
+   32.0
+  ],
+  "tris": 3460
+ },
+ "bamboo_temple.lod1": {
+  "bytes": 39960,
+  "file": "prop.bamboo_temple.lod1.glb",
+  "materials": [
+   "M_bamboo_temple"
+  ],
+  "max_gltf": [
+   7.7,
+   11.05,
+   16.0
+  ],
+  "min_gltf": [
+   -7.7,
+   -0.3,
+   -16.0
+  ],
+  "nodes": [
+   "bamboo_temple",
+   "gong",
+   "door_l",
+   "door_r"
+  ],
+  "size_m": [
+   15.4,
+   11.35,
+   32.0
+  ],
+  "tris": 2200
+ },
+ "bamboo_torii": {
+  "bytes": 13152,
+  "file": "prop.bamboo_torii.glb",
+  "materials": [
+   "M_bamboo_torii"
+  ],
+  "max_gltf": [
+   13.86,
+   10.03,
+   0.85
+  ],
+  "min_gltf": [
+   -13.86,
+   -0.2,
+   -0.85
+  ],
+  "nodes": [
+   "bamboo_torii"
+  ],
+  "size_m": [
+   27.72,
+   10.23,
+   1.7
+  ],
+  "tris": 748
+ },
  "barn": {
   "bytes": 123796,
   "file": "prop.barn.glb",
@@ -295,6 +851,587 @@
   ],
   "tris": 86
  },
+ "glacier_crystal": {
+  "bytes": 7972,
+  "file": "prop.glacier_crystal.glb",
+  "materials": [
+   "M_glacier_crystal",
+   "M_glacier_crystal_ice"
+  ],
+  "max_gltf": [
+   1.08,
+   2.2,
+   0.9
+  ],
+  "min_gltf": [
+   -1.08,
+   -0.75,
+   -0.9
+  ],
+  "nodes": [
+   "glacier_crystal"
+  ],
+  "size_m": [
+   2.16,
+   2.95,
+   1.8
+  ],
+  "tris": 174
+ },
+ "glacier_flag_b": {
+  "bytes": 3548,
+  "file": "prop.glacier_flag_b.glb",
+  "materials": [
+   "M_glacier_flag_b"
+  ],
+  "max_gltf": [
+   0.98,
+   1.9,
+   0.22
+  ],
+  "min_gltf": [
+   -0.19,
+   -0.2,
+   -0.22
+  ],
+  "nodes": [
+   "glacier_flag_b"
+  ],
+  "size_m": [
+   1.17,
+   2.1,
+   0.43
+  ],
+  "tris": 92
+ },
+ "glacier_flag_r": {
+  "bytes": 3548,
+  "file": "prop.glacier_flag_r.glb",
+  "materials": [
+   "M_glacier_flag_r"
+  ],
+  "max_gltf": [
+   0.98,
+   1.9,
+   0.22
+  ],
+  "min_gltf": [
+   -0.19,
+   -0.2,
+   -0.22
+  ],
+  "nodes": [
+   "glacier_flag_r"
+  ],
+  "size_m": [
+   1.17,
+   2.1,
+   0.43
+  ],
+  "tris": 92
+ },
+ "glacier_gondola": {
+  "bytes": 6672,
+  "file": "prop.glacier_gondola.glb",
+  "materials": [
+   "M_glacier_gondola",
+   "M_glacier_gondola_glass"
+  ],
+  "max_gltf": [
+   1.0,
+   0.0,
+   1.2
+  ],
+  "min_gltf": [
+   -1.0,
+   -4.4,
+   -1.2
+  ],
+  "nodes": [
+   "glacier_gondola"
+  ],
+  "size_m": [
+   2.0,
+   4.4,
+   2.4
+  ],
+  "tris": 252
+ },
+ "glacier_iceblock": {
+  "bytes": 2544,
+  "file": "prop.glacier_iceblock.glb",
+  "materials": [
+   "M_glacier_iceblock_ice"
+  ],
+  "max_gltf": [
+   0.92,
+   5.12,
+   4.8
+  ],
+  "min_gltf": [
+   -0.99,
+   -1.4,
+   -4.8
+  ],
+  "nodes": [
+   "glacier_iceblock"
+  ],
+  "size_m": [
+   1.91,
+   6.52,
+   9.6
+  ],
+  "tris": 44
+ },
+ "glacier_icicle": {
+  "bytes": 2548,
+  "file": "prop.glacier_icicle.glb",
+  "materials": [
+   "M_glacier_icicle_ice"
+  ],
+  "max_gltf": [
+   0.43,
+   0.0,
+   0.4
+  ],
+  "min_gltf": [
+   -0.33,
+   -2.3,
+   -0.37
+  ],
+  "nodes": [
+   "glacier_icicle"
+  ],
+  "size_m": [
+   0.76,
+   2.3,
+   0.77
+  ],
+  "tris": 27
+ },
+ "glacier_icicles": {
+  "bytes": 4132,
+  "file": "prop.glacier_icicles.glb",
+  "materials": [
+   "M_glacier_icicles_ice"
+  ],
+  "max_gltf": [
+   1.6,
+   0.15,
+   0.7
+  ],
+  "min_gltf": [
+   -1.6,
+   -1.52,
+   -0.7
+  ],
+  "nodes": [
+   "glacier_icicles"
+  ],
+  "size_m": [
+   3.2,
+   1.67,
+   1.4
+  ],
+  "tris": 89
+ },
+ "glacier_pine": {
+  "bytes": 11824,
+  "file": "prop.glacier_pine.glb",
+  "materials": [
+   "M_glacier_pine_foliage"
+  ],
+  "max_gltf": [
+   3.22,
+   8.82,
+   3.23
+  ],
+  "min_gltf": [
+   -3.15,
+   -0.15,
+   -3.1
+  ],
+  "nodes": [
+   "glacier_pine"
+  ],
+  "size_m": [
+   6.37,
+   8.97,
+   6.34
+  ],
+  "tris": 363
+ },
+ "glacier_pine.lod1": {
+  "bytes": 4848,
+  "file": "prop.glacier_pine.lod1.glb",
+  "materials": [
+   "M_glacier_pine_foliage"
+  ],
+  "max_gltf": [
+   2.51,
+   9.46,
+   2.81
+  ],
+  "min_gltf": [
+   -3.0,
+   -0.15,
+   -2.89
+  ],
+  "nodes": [
+   "glacier_pine"
+  ],
+  "size_m": [
+   5.5,
+   9.61,
+   5.7
+  ],
+  "tris": 119
+ },
+ "glacier_pylon": {
+  "bytes": 8900,
+  "file": "prop.glacier_pylon.glb",
+  "materials": [
+   "M_glacier_pylon"
+  ],
+  "max_gltf": [
+   2.8,
+   17.75,
+   1.71
+  ],
+  "min_gltf": [
+   -2.8,
+   -0.6,
+   -1.71
+  ],
+  "nodes": [
+   "glacier_pylon"
+  ],
+  "size_m": [
+   5.6,
+   18.35,
+   3.43
+  ],
+  "tris": 496
+ },
+ "glacier_pylon.lod1": {
+  "bytes": 4364,
+  "file": "prop.glacier_pylon.lod1.glb",
+  "materials": [
+   "M_glacier_pylon"
+  ],
+  "max_gltf": [
+   2.8,
+   17.75,
+   1.71
+  ],
+  "min_gltf": [
+   -2.8,
+   -0.6,
+   -1.71
+  ],
+  "nodes": [
+   "glacier_pylon"
+  ],
+  "size_m": [
+   5.6,
+   18.35,
+   3.43
+  ],
+  "tris": 160
+ },
+ "glacier_rock": {
+  "bytes": 11264,
+  "file": "prop.glacier_rock.glb",
+  "materials": [
+   "M_glacier_rock"
+  ],
+  "max_gltf": [
+   1.78,
+   1.52,
+   1.51
+  ],
+  "min_gltf": [
+   -1.71,
+   -0.15,
+   -1.5
+  ],
+  "nodes": [
+   "glacier_rock"
+  ],
+  "size_m": [
+   3.49,
+   1.67,
+   3.0
+  ],
+  "tris": 300
+ },
+ "glacier_rock.lod1": {
+  "bytes": 4164,
+  "file": "prop.glacier_rock.lod1.glb",
+  "materials": [
+   "M_glacier_rock"
+  ],
+  "max_gltf": [
+   1.81,
+   1.52,
+   1.53
+  ],
+  "min_gltf": [
+   -1.72,
+   -0.13,
+   -1.49
+  ],
+  "nodes": [
+   "glacier_rock"
+  ],
+  "size_m": [
+   3.53,
+   1.65,
+   3.02
+  ],
+  "tris": 80
+ },
+ "glacier_rock_b": {
+  "bytes": 10252,
+  "file": "prop.glacier_rock_b.glb",
+  "materials": [
+   "M_glacier_rock_b"
+  ],
+  "max_gltf": [
+   1.0,
+   0.74,
+   0.75
+  ],
+  "min_gltf": [
+   -1.0,
+   -0.15,
+   -0.81
+  ],
+  "nodes": [
+   "glacier_rock_b"
+  ],
+  "size_m": [
+   2.0,
+   0.89,
+   1.56
+  ],
+  "tris": 300
+ },
+ "glacier_rock_b.lod1": {
+  "bytes": 4444,
+  "file": "prop.glacier_rock_b.lod1.glb",
+  "materials": [
+   "M_glacier_rock_b"
+  ],
+  "max_gltf": [
+   1.01,
+   0.71,
+   0.76
+  ],
+  "min_gltf": [
+   -1.0,
+   -0.16,
+   -0.81
+  ],
+  "nodes": [
+   "glacier_rock_b"
+  ],
+  "size_m": [
+   2.01,
+   0.87,
+   1.57
+  ],
+  "tris": 80
+ },
+ "glacier_seal": {
+  "bytes": 14168,
+  "file": "prop.glacier_seal.glb",
+  "materials": [
+   "M_glacier_seal_ice"
+  ],
+  "max_gltf": [
+   0.72,
+   5.76,
+   5.3
+  ],
+  "min_gltf": [
+   -0.72,
+   -1.5,
+   -5.3
+  ],
+  "nodes": [
+   "glacier_seal"
+  ],
+  "size_m": [
+   1.44,
+   7.26,
+   10.6
+  ],
+  "tris": 704
+ },
+ "glacier_serac": {
+  "bytes": 22416,
+  "file": "prop.glacier_serac.glb",
+  "materials": [
+   "M_glacier_serac_ice"
+  ],
+  "max_gltf": [
+   2.97,
+   9.1,
+   2.22
+  ],
+  "min_gltf": [
+   -2.53,
+   -0.5,
+   -2.35
+  ],
+  "nodes": [
+   "glacier_serac"
+  ],
+  "size_m": [
+   5.5,
+   9.6,
+   4.58
+  ],
+  "tris": 704
+ },
+ "glacier_snowbridge": {
+  "bytes": 18648,
+  "file": "prop.glacier_snowbridge.glb",
+  "materials": [
+   "M_glacier_snowbridge",
+   "M_glacier_snowbridge_ice"
+  ],
+  "max_gltf": [
+   12.28,
+   1.9,
+   11.5
+  ],
+  "min_gltf": [
+   -12.28,
+   -6.16,
+   -11.5
+  ],
+  "nodes": [
+   "glacier_snowbridge",
+   "deck"
+  ],
+  "size_m": [
+   24.56,
+   8.06,
+   23.0
+  ],
+  "tris": 644
+ },
+ "glacier_snowfence": {
+  "bytes": 5656,
+  "file": "prop.glacier_snowfence.glb",
+  "materials": [
+   "M_glacier_snowfence"
+  ],
+  "max_gltf": [
+   2.07,
+   1.3,
+   0.22
+  ],
+  "min_gltf": [
+   -2.07,
+   -0.58,
+   -0.72
+  ],
+  "nodes": [
+   "glacier_snowfence",
+   "end_post"
+  ],
+  "size_m": [
+   4.14,
+   1.88,
+   0.94
+  ],
+  "tris": 168
+ },
+ "glacier_snowman": {
+  "bytes": 18056,
+  "file": "prop.glacier_snowman.glb",
+  "materials": [
+   "M_glacier_snowman"
+  ],
+  "max_gltf": [
+   1.38,
+   3.1,
+   0.8
+  ],
+  "min_gltf": [
+   -1.38,
+   -0.15,
+   -0.75
+  ],
+  "nodes": [
+   "glacier_snowman"
+  ],
+  "size_m": [
+   2.77,
+   3.25,
+   1.55
+  ],
+  "tris": 714
+ },
+ "glacier_station": {
+  "bytes": 18760,
+  "file": "prop.glacier_station.glb",
+  "materials": [
+   "M_glacier_station",
+   "M_glacier_station_glass",
+   "M_glacier_station_lamp"
+  ],
+  "max_gltf": [
+   8.12,
+   10.24,
+   7.77
+  ],
+  "min_gltf": [
+   -7.56,
+   -0.6,
+   -8.7
+  ],
+  "nodes": [
+   "glacier_station"
+  ],
+  "size_m": [
+   15.68,
+   10.84,
+   16.47
+  ],
+  "tris": 796
+ },
+ "glacier_station.lod1": {
+  "bytes": 16816,
+  "file": "prop.glacier_station.lod1.glb",
+  "materials": [
+   "M_glacier_station",
+   "M_glacier_station_glass",
+   "M_glacier_station_lamp"
+  ],
+  "max_gltf": [
+   8.12,
+   10.24,
+   7.77
+  ],
+  "min_gltf": [
+   -7.56,
+   -0.6,
+   -8.7
+  ],
+  "nodes": [
+   "glacier_station"
+  ],
+  "size_m": [
+   15.68,
+   10.84,
+   16.47
+  ],
+  "tris": 692
+ },
  "grandstand": {
   "bytes": 135428,
   "file": "prop.grandstand.glb",
@@ -451,6 +1588,828 @@
    1.49
   ],
   "tris": 408
+ },
+ "honey_barrel": {
+  "bytes": 16060,
+  "file": "prop.honey_barrel.glb",
+  "materials": [
+   "M_honey_barrel"
+  ],
+  "max_gltf": [
+   0.51,
+   1.24,
+   0.51
+  ],
+  "min_gltf": [
+   -0.51,
+   0.0,
+   -0.51
+  ],
+  "nodes": [
+   "honey_barrel"
+  ],
+  "size_m": [
+   1.03,
+   1.24,
+   1.01
+  ],
+  "tris": 890
+ },
+ "honey_barrel.lod1": {
+  "bytes": 2108,
+  "file": "prop.honey_barrel.lod1.glb",
+  "materials": [
+   "M_honey_barrel"
+  ],
+  "max_gltf": [
+   0.5,
+   1.23,
+   0.5
+  ],
+  "min_gltf": [
+   -0.5,
+   0.0,
+   -0.5
+  ],
+  "nodes": [
+   "honey_barrel"
+  ],
+  "size_m": [
+   1.0,
+   1.23,
+   1.0
+  ],
+  "tris": 56
+ },
+ "honey_bee": {
+  "bytes": 31224,
+  "file": "prop.honey_bee.glb",
+  "materials": [
+   "M_honey_bee"
+  ],
+  "max_gltf": [
+   0.55,
+   1.71,
+   0.4
+  ],
+  "min_gltf": [
+   -0.55,
+   -0.02,
+   -0.45
+  ],
+  "nodes": [
+   "honey_bee",
+   "wings"
+  ],
+  "size_m": [
+   1.1,
+   1.74,
+   0.85
+  ],
+  "tris": 1306
+ },
+ "honey_bee.lod1": {
+  "bytes": 12716,
+  "file": "prop.honey_bee.lod1.glb",
+  "materials": [
+   "M_honey_bee"
+  ],
+  "max_gltf": [
+   0.52,
+   1.51,
+   0.39
+  ],
+  "min_gltf": [
+   -0.52,
+   0.14,
+   -0.45
+  ],
+  "nodes": [
+   "honey_bee"
+  ],
+  "size_m": [
+   1.04,
+   1.37,
+   0.84
+  ],
+  "tris": 482
+ },
+ "honey_cannon": {
+  "bytes": 24892,
+  "file": "prop.honey_cannon.glb",
+  "materials": [
+   "M_honey_cannon",
+   "M_honey_cannon_emit"
+  ],
+  "max_gltf": [
+   2.85,
+   14.92,
+   11.56
+  ],
+  "min_gltf": [
+   -2.85,
+   -0.15,
+   -3.35
+  ],
+  "nodes": [
+   "honey_cannon"
+  ],
+  "size_m": [
+   5.7,
+   15.07,
+   14.91
+  ],
+  "tris": 1224
+ },
+ "honey_cannon.lod1": {
+  "bytes": 17020,
+  "file": "prop.honey_cannon.lod1.glb",
+  "materials": [
+   "M_honey_cannon"
+  ],
+  "max_gltf": [
+   2.85,
+   14.92,
+   11.56
+  ],
+  "min_gltf": [
+   -2.85,
+   -0.15,
+   -3.25
+  ],
+  "nodes": [
+   "honey_cannon"
+  ],
+  "size_m": [
+   5.7,
+   15.07,
+   14.81
+  ],
+  "tris": 800
+ },
+ "honey_cannon_lid": {
+  "bytes": 8524,
+  "file": "prop.honey_cannon_lid.glb",
+  "materials": [
+   "M_honey_cannon_lid"
+  ],
+  "max_gltf": [
+   2.65,
+   5.35,
+   0.23
+  ],
+  "min_gltf": [
+   -2.65,
+   0.05,
+   -0.11
+  ],
+  "nodes": [
+   "honey_cannon_lid"
+  ],
+  "size_m": [
+   5.3,
+   5.3,
+   0.34
+  ],
+  "tris": 388
+ },
+ "honey_column": {
+  "bytes": 2852,
+  "file": "prop.honey_column.glb",
+  "materials": [
+   "M_honey_column"
+  ],
+  "max_gltf": [
+   0.55,
+   13.0,
+   0.55
+  ],
+  "min_gltf": [
+   -0.55,
+   0.0,
+   -0.55
+  ],
+  "nodes": [
+   "honey_column"
+  ],
+  "size_m": [
+   1.1,
+   13.0,
+   1.1
+  ],
+  "tris": 80
+ },
+ "honey_crate": {
+  "bytes": 17248,
+  "file": "prop.honey_crate.glb",
+  "materials": [
+   "M_honey_crate"
+  ],
+  "max_gltf": [
+   0.6,
+   1.1,
+   0.6
+  ],
+  "min_gltf": [
+   -0.6,
+   0.0,
+   -0.6
+  ],
+  "nodes": [
+   "honey_crate"
+  ],
+  "size_m": [
+   1.21,
+   1.1,
+   1.21
+  ],
+  "tris": 1164
+ },
+ "honey_crate.lod1": {
+  "bytes": 2480,
+  "file": "prop.honey_crate.lod1.glb",
+  "materials": [
+   "M_honey_crate"
+  ],
+  "max_gltf": [
+   0.55,
+   1.1,
+   0.56
+  ],
+  "min_gltf": [
+   -0.55,
+   0.0,
+   -0.56
+  ],
+  "nodes": [
+   "honey_crate"
+  ],
+  "size_m": [
+   1.1,
+   1.1,
+   1.13
+  ],
+  "tris": 52
+ },
+ "honey_hive": {
+  "bytes": 5140,
+  "file": "prop.honey_hive.glb",
+  "materials": [
+   "M_honey_hive"
+  ],
+  "max_gltf": [
+   0.43,
+   1.55,
+   0.55
+  ],
+  "min_gltf": [
+   -0.43,
+   0.0,
+   -0.55
+  ],
+  "nodes": [
+   "honey_hive"
+  ],
+  "size_m": [
+   0.86,
+   1.55,
+   1.1
+  ],
+  "tris": 216
+ },
+ "honey_hive_tower": {
+  "bytes": 21180,
+  "file": "prop.honey_hive_tower.glb",
+  "materials": [
+   "M_honey_hive_tower",
+   "M_honey_hive_tower_emit"
+  ],
+  "max_gltf": [
+   3.46,
+   18.03,
+   4.0
+  ],
+  "min_gltf": [
+   -3.46,
+   0.0,
+   -4.0
+  ],
+  "nodes": [
+   "honey_hive_tower"
+  ],
+  "size_m": [
+   6.93,
+   18.03,
+   8.0
+  ],
+  "tris": 1046
+ },
+ "honey_hive_tower.lod1": {
+  "bytes": 10488,
+  "file": "prop.honey_hive_tower.lod1.glb",
+  "materials": [
+   "M_honey_hive_tower",
+   "M_honey_hive_tower_emit"
+  ],
+  "max_gltf": [
+   3.46,
+   18.03,
+   4.0
+  ],
+  "min_gltf": [
+   -3.46,
+   0.0,
+   -4.0
+  ],
+  "nodes": [
+   "honey_hive_tower"
+  ],
+  "size_m": [
+   6.93,
+   18.03,
+   8.0
+  ],
+  "tris": 422
+ },
+ "honey_jar": {
+  "bytes": 5444,
+  "file": "prop.honey_jar.glb",
+  "materials": [
+   "M_honey_jar_gloss"
+  ],
+  "max_gltf": [
+   0.22,
+   0.5,
+   0.21
+  ],
+  "min_gltf": [
+   -0.22,
+   0.0,
+   -0.21
+  ],
+  "nodes": [
+   "honey_jar"
+  ],
+  "size_m": [
+   0.44,
+   0.5,
+   0.42
+  ],
+  "tris": 258
+ },
+ "honey_jar_giant": {
+  "bytes": 18764,
+  "file": "prop.honey_jar_giant.glb",
+  "materials": [
+   "M_honey_jar_giant_gloss"
+  ],
+  "max_gltf": [
+   2.33,
+   6.59,
+   2.44
+  ],
+  "min_gltf": [
+   -2.33,
+   0.0,
+   -2.33
+  ],
+  "nodes": [
+   "honey_jar_giant"
+  ],
+  "size_m": [
+   4.66,
+   6.59,
+   4.77
+  ],
+  "tris": 934
+ },
+ "honey_jar_giant.lod1": {
+  "bytes": 5128,
+  "file": "prop.honey_jar_giant.lod1.glb",
+  "materials": [
+   "M_honey_jar_giant_gloss"
+  ],
+  "max_gltf": [
+   2.3,
+   6.59,
+   2.19
+  ],
+  "min_gltf": [
+   -2.3,
+   0.0,
+   -2.19
+  ],
+  "nodes": [
+   "honey_jar_giant"
+  ],
+  "size_m": [
+   4.6,
+   6.59,
+   4.37
+  ],
+  "tris": 258
+ },
+ "honey_lamp": {
+  "bytes": 7076,
+  "file": "prop.honey_lamp.glb",
+  "materials": [
+   "M_honey_lamp",
+   "M_honey_lamp_emit"
+  ],
+  "max_gltf": [
+   0.62,
+   0.0,
+   0.6
+  ],
+  "min_gltf": [
+   -0.62,
+   -3.7,
+   -0.6
+  ],
+  "nodes": [
+   "honey_lamp"
+  ],
+  "size_m": [
+   1.24,
+   3.7,
+   1.21
+  ],
+  "tris": 252
+ },
+ "honey_lamp_post": {
+  "bytes": 6656,
+  "file": "prop.honey_lamp_post.glb",
+  "materials": [
+   "M_honey_lamp_post",
+   "M_honey_lamp_post_emit"
+  ],
+  "max_gltf": [
+   1.07,
+   5.0,
+   0.3
+  ],
+  "min_gltf": [
+   -0.3,
+   0.0,
+   -0.3
+  ],
+  "nodes": [
+   "honey_lamp_post"
+  ],
+  "size_m": [
+   1.37,
+   5.0,
+   0.61
+  ],
+  "tris": 208
+ },
+ "honey_lavender": {
+  "bytes": 15532,
+  "file": "prop.honey_lavender.glb",
+  "materials": [
+   "M_honey_lavender",
+   "M_honey_lavender_foliage"
+  ],
+  "max_gltf": [
+   0.31,
+   0.93,
+   0.27
+  ],
+  "min_gltf": [
+   -0.27,
+   0.01,
+   -0.35
+  ],
+  "nodes": [
+   "honey_lavender"
+  ],
+  "size_m": [
+   0.58,
+   0.92,
+   0.62
+  ],
+  "tris": 447
+ },
+ "honey_pipe": {
+  "bytes": 3432,
+  "file": "prop.honey_pipe.glb",
+  "materials": [
+   "M_honey_pipe"
+  ],
+  "max_gltf": [
+   3.1,
+   1.48,
+   0.58
+  ],
+  "min_gltf": [
+   -3.1,
+   0.0,
+   -0.58
+  ],
+  "nodes": [
+   "honey_pipe"
+  ],
+  "size_m": [
+   6.2,
+   1.48,
+   1.16
+  ],
+  "tris": 136
+ },
+ "honey_press": {
+  "bytes": 15072,
+  "file": "prop.honey_press.glb",
+  "materials": [
+   "M_honey_press",
+   "M_honey_press_emit"
+  ],
+  "max_gltf": [
+   6.9,
+   10.47,
+   2.25
+  ],
+  "min_gltf": [
+   -4.55,
+   0.0,
+   -2.25
+  ],
+  "nodes": [
+   "honey_press",
+   "head",
+   "lamp"
+  ],
+  "size_m": [
+   11.45,
+   10.47,
+   4.5
+  ],
+  "tris": 580
+ },
+ "honey_press.lod1": {
+  "bytes": 13144,
+  "file": "prop.honey_press.lod1.glb",
+  "materials": [
+   "M_honey_press",
+   "M_honey_press_emit"
+  ],
+  "max_gltf": [
+   6.9,
+   10.47,
+   2.25
+  ],
+  "min_gltf": [
+   -4.55,
+   0.0,
+   -2.25
+  ],
+  "nodes": [
+   "honey_press",
+   "head",
+   "lamp"
+  ],
+  "size_m": [
+   11.45,
+   10.47,
+   4.5
+  ],
+  "tris": 480
+ },
+ "honey_sunflower": {
+  "bytes": 8888,
+  "file": "prop.honey_sunflower.glb",
+  "materials": [
+   "M_honey_sunflower",
+   "M_honey_sunflower_foliage"
+  ],
+  "max_gltf": [
+   0.43,
+   2.63,
+   0.29
+  ],
+  "min_gltf": [
+   -0.43,
+   -0.0,
+   -0.21
+  ],
+  "nodes": [
+   "honey_sunflower"
+  ],
+  "size_m": [
+   0.86,
+   2.63,
+   0.5
+  ],
+  "tris": 285
+ },
+ "honey_tank": {
+  "bytes": 59628,
+  "file": "prop.honey_tank.glb",
+  "materials": [
+   "M_honey_tank",
+   "M_honey_tank_emit"
+  ],
+  "max_gltf": [
+   15.36,
+   20.8,
+   11.1
+  ],
+  "min_gltf": [
+   -14.36,
+   0.0,
+   -15.4
+  ],
+  "nodes": [
+   "honey_tank"
+  ],
+  "size_m": [
+   29.71,
+   20.8,
+   26.5
+  ],
+  "tris": 3032
+ },
+ "honey_tank.lod1": {
+  "bytes": 8360,
+  "file": "prop.honey_tank.lod1.glb",
+  "materials": [
+   "M_honey_tank",
+   "M_honey_tank_emit"
+  ],
+  "max_gltf": [
+   11.1,
+   19.45,
+   10.82
+  ],
+  "min_gltf": [
+   -11.1,
+   0.0,
+   -10.82
+  ],
+  "nodes": [
+   "honey_tank"
+  ],
+  "size_m": [
+   22.2,
+   19.45,
+   21.64
+  ],
+  "tris": 336
+ },
+ "honey_truss": {
+  "bytes": 9112,
+  "file": "prop.honey_truss.glb",
+  "materials": [
+   "M_honey_truss"
+  ],
+  "max_gltf": [
+   23.12,
+   4.15,
+   0.15
+  ],
+  "min_gltf": [
+   -23.12,
+   -0.08,
+   -0.15
+  ],
+  "nodes": [
+   "honey_truss"
+  ],
+  "size_m": [
+   46.24,
+   4.23,
+   0.3
+  ],
+  "tris": 600
+ },
+ "honey_truss.lod1": {
+  "bytes": 6100,
+  "file": "prop.honey_truss.lod1.glb",
+  "materials": [
+   "M_honey_truss"
+  ],
+  "max_gltf": [
+   23.12,
+   4.15,
+   0.15
+  ],
+  "min_gltf": [
+   -23.12,
+   -0.09,
+   -0.15
+  ],
+  "nodes": [
+   "honey_truss"
+  ],
+  "size_m": [
+   46.24,
+   4.24,
+   0.3
+  ],
+  "tris": 312
+ },
+ "honey_vat": {
+  "bytes": 8400,
+  "file": "prop.honey_vat.glb",
+  "materials": [
+   "M_honey_vat"
+  ],
+  "max_gltf": [
+   3.45,
+   3.0,
+   3.06
+  ],
+  "min_gltf": [
+   -3.45,
+   0.0,
+   -3.06
+  ],
+  "nodes": [
+   "honey_vat"
+  ],
+  "size_m": [
+   6.9,
+   3.0,
+   6.12
+  ],
+  "tris": 432
+ },
+ "honey_vat.lod1": {
+  "bytes": 6468,
+  "file": "prop.honey_vat.lod1.glb",
+  "materials": [
+   "M_honey_vat"
+  ],
+  "max_gltf": [
+   3.45,
+   3.0,
+   3.06
+  ],
+  "min_gltf": [
+   -3.45,
+   0.0,
+   -3.06
+  ],
+  "nodes": [
+   "honey_vat"
+  ],
+  "size_m": [
+   6.9,
+   3.0,
+   6.12
+  ],
+  "tris": 288
+ },
+ "honey_wall": {
+  "bytes": 7208,
+  "file": "prop.honey_wall.glb",
+  "materials": [
+   "M_honey_wall"
+  ],
+  "max_gltf": [
+   4.05,
+   12.25,
+   0.55
+  ],
+  "min_gltf": [
+   -4.05,
+   0.0,
+   -0.55
+  ],
+  "nodes": [
+   "honey_wall"
+  ],
+  "size_m": [
+   8.1,
+   12.25,
+   1.1
+  ],
+  "tris": 344
+ },
+ "honey_wall.lod1": {
+  "bytes": 3696,
+  "file": "prop.honey_wall.lod1.glb",
+  "materials": [
+   "M_honey_wall"
+  ],
+  "max_gltf": [
+   4.05,
+   12.25,
+   0.55
+  ],
+  "min_gltf": [
+   -4.05,
+   0.0,
+   -0.55
+  ],
+  "nodes": [
+   "honey_wall"
+  ],
+  "size_m": [
+   8.1,
+   12.25,
+   1.1
+  ],
+  "tris": 144
  },
  "ramp": {
   "bytes": 13412,

@@ -228,6 +228,7 @@ export class BuiltTrack implements TrackRuntime {
     this.buildGridAndBoxes();
     this.buildBranches();
     this.buildHazards();
+    def.script?.build?.(this);
     for (const [k, v] of this.state.tags) this.initialTags.set(k, v);
     this.applyTags();
     this.stats.total = now() - t0;
@@ -611,6 +612,7 @@ export class BuiltTrack implements TrackRuntime {
     for (const pt of def.patches ?? []) {
       const p = this.pathByRef(pt.path);
       this.patches.push({ path: p.index, s0: resolveProgress(p, pt.from), s1: resolveProgress(p, pt.to), latMin: pt.latMin, latMax: pt.latMax, surface: pt.surface, tag: pt.tag });
+      if (pt.tag && pt.enabled !== undefined) this.declareTag(pt.tag, pt.enabled);
     }
     for (const b of def.branches ?? []) if (b.tag) this.declareTag(b.tag, b.enabled ?? true);
   }
@@ -830,7 +832,7 @@ export class BuiltTrack implements TrackRuntime {
       }
       if (pp.y !== undefined) y += pp.dy ?? 0;
       this.props.push({ name: pp.name, x, y, z, yaw, scale: (pp.scale ?? 1) * (pp.flip ? -1 : 1), tag: pp.tag, detail: false, keep: 0, dist: this.terrain.roadDistAt(x, z) });
-      if (pp.tag) this.declareTag(pp.tag, true);
+      if (pp.tag) this.declareTag(pp.tag, pp.enabled ?? true);
       const r = pp.clear ?? (typeof pp.solid === 'number' ? pp.solid + 1.5 : Array.isArray(pp.solid) ? Math.hypot(pp.solid[0], pp.solid[1]) / 2 + 1.5 : 2);
       clear.push({ x, z, r });
     }
@@ -1008,17 +1010,22 @@ export class BuiltTrack implements TrackRuntime {
     this.addCollider('walls', 'wall', 'wall', walls);
     // solid props + trees
     const solid = new MeshAcc();
+    // solid props with a tag get their own collider 'door.<tag>', toggled by lap events like barn doors
+    const taggedSolid = new Map<string, MeshAcc>();
     for (const pp of this.def.props ?? []) {
       if (!pp.solid) continue;
       const placed = this.props.find((q) => q.name === pp.name && !q.detail && q.tag === pp.tag && (pp.pos ? q.x === pp.pos[0] && q.z === pp.pos[1] : true));
       if (!placed) continue;
       const h = pp.solidHeight ?? 4;
       const sc = Math.abs(placed.scale);
-      if (typeof pp.solid === 'number') this.prism(solid, placed.x, placed.y - 0.5, placed.z, pp.solid * sc, h);
-      else this.box(solid, placed.x, placed.y - 0.5, placed.z, pp.solid[0] * sc, pp.solid[1] * sc, placed.yaw, h);
+      let m = solid;
+      if (pp.tag) { m = taggedSolid.get(pp.tag) ?? new MeshAcc(); taggedSolid.set(pp.tag, m); }
+      if (typeof pp.solid === 'number') this.prism(m, placed.x, placed.y - 0.5, placed.z, pp.solid * sc, h);
+      else this.box(m, placed.x, placed.y - 0.5, placed.z, pp.solid[0] * sc, pp.solid[1] * sc, placed.yaw, h);
     }
     for (const t of this.solidTrees) this.prism(solid, t.x, t.y - 0.5, t.z, t.r, 3.5);
     this.addCollider('walls.props', 'wall', 'wall', solid);
+    for (const [tag, m] of taggedSolid) this.addCollider(`door.${tag}`, 'wall', 'wall', m, tag);
     // structures
     for (const st of this.structures) {
       const w = new MeshAcc(), d = new MeshAcc();

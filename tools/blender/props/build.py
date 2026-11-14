@@ -10,7 +10,7 @@ sys.path.insert(0, HERE)
 import kit
 importlib.reload(kit)
 
-MODULES = ['props_nature', 'props_farm', 'props_buildings', 'props_race']
+MODULES = ['props_nature', 'props_farm', 'props_buildings', 'props_race', 'props_bamboo','props_glacier', 'props_honey']
 BUILDERS, LODS, AO = {}, set(), {}
 for mname in MODULES:
     if not os.path.exists(os.path.join(HERE, mname + '.py')):

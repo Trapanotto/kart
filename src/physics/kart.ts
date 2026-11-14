@@ -75,6 +75,7 @@ export class PhysKart implements Kart {
   surface: SurfaceType = 'road';
   wheels: WheelState[];
   lean = 0;
+  private upTmp = new Vector3();
   drift = { active: false, dir: 0 as -1 | 0 | 1, charge: 0, level: 0 as 0 | 1 | 2 | 3 };
   boost = { time: 0, power: 1 };
   stun = 0;
@@ -569,7 +570,8 @@ export class PhysKart implements Kart {
   postStep(sim: RaceSim, dt: number): void {
     if (this.carry) { this.updateWheelPositions(); return; }
     this.syncFromBody();
-    const up = _v.set(0, 1, 0).applyQuaternion(this.quat);
+    // Own vector: the shared temp is reused by updateWheelPositions() before checkRespawn reads `up`.
+    const up = this.upTmp.set(0, 1, 0).applyQuaternion(this.quat);
     const fwd = _f.set(0, 0, 1).applyQuaternion(this.quat);
     this.speed = this.vel.dot(fwd);
 

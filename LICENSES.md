@@ -9,12 +9,14 @@ Only CC0 (public domain) assets are used.
 
 All scenery models in `public/assets/models/prop.*.glb` (and their `.lod1` variants) are original work of the
 project, generated procedurally by the scripts in `tools/blender/props/`. No third-party meshes are used.
+This includes the Bambus-Tempel kit `prop.bamboo_*.glb` (`tools/blender/props/props_bamboo.py`); track 2 adds no third-party textures, skies or sounds.
 
 ### Sky / lighting (`public/assets/env/`)
 
 | File | Asset | Author | Source | Licence |
 |---|---|---|---|---|
 | `meadow_day.hdr` (2k), `meadow_day_1k.hdr` (1k) | Meadow 2 | Sergej Majboroda | https://polyhaven.com/a/meadow_2 | CC0 1.0 |
+| `glacier_day.hdr` (2k), `glacier_day_1k.hdr` (1k) (Gletscher-Gipfel) | Horn-koppe Snow | Grzegorz Wronkowski | https://polyhaven.com/a/horn-koppe_snow | CC0 1.0 |
 
 ### Surface textures (`public/assets/textures/`)
 

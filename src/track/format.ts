@@ -140,6 +140,8 @@ export interface PatchDef {
   surface: SurfaceType;
   path?: PathRef;
   tag?: string;
+  /** Initial state of the tagged patch collider (lap events toggle it). Default true. */
+  enabled?: boolean;
 }
 
 /** Bridge / overpass: the road is a deck here, the terrain below is not shaped to it. */
@@ -247,6 +249,8 @@ export interface PropPlacement {
   /** Height of the collider (m), default 4. */
   solidHeight?: number;
   tag?: string;
+  /** Initial state of `tag` (shown + collider on). Default true. A tagged `solid` gets its own collider 'door.<tag>'. */
+  enabled?: boolean;
   /** Keeps scatter away within this radius (m). Default from `solid` or 2. */
   clear?: number;
 }
@@ -324,6 +328,11 @@ export interface LapEventDef {
  * object returned by `create`, which is called once per built track.
  */
 export interface TrackScript {
+  /**
+   * Optional: called once at the end of buildTrack(), before any physics world exists, e.g. to
+   * split or add colliders (`track.colliders`). Must be deterministic.
+   */
+  build?(track: any): void;
   create(track: any): {
     /** Called at race start, after the declarative reset. Return extra entities. */
     createEntities?(sim: RaceSim): SimEntity[];
