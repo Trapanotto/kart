@@ -41,6 +41,7 @@ registerTheme('honey', {
   roadMaterial: (T) => honeyRoadMaterial(T, { hall: hallRects, elevatedY: 2 + 3.5 }),
   terrainMaterial: (T) => honeyTerrainMaterial(T, { hall: hallRects }),
   backdropTrees: true,
+  assets: ['prop.honey_press', 'prop.honey_press.lod1', 'prop.honey_barrel'],
   async extend(track, ctx, root, T) {
     try { await ctx.assets.load(['prop.honey_press', 'prop.honey_press.lod1', 'prop.honey_barrel']); } catch { /* placeholders */ }
     // the kit start gate's banner is blank (white): give it the honeycomb banner

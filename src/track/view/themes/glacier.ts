@@ -169,6 +169,7 @@ async function extend(t: BuiltTrack, ctx: RenderContext, root: THREE.Group, T: T
 }
 
 registerTheme('glacier', {
+  assets: EXTRA,
   backdropTrees: false,
   terrainMaterial: (T: TexLib, ctx: RenderContext) => snowTerrainMaterial(T, ctx.quality.tier === 'mobile'),
   roadMaterial: (T: TexLib) => glacierRoadMaterial(T),

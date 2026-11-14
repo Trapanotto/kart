@@ -100,6 +100,13 @@ export async function createApp(canvas: HTMLCanvasElement, uiRoot: HTMLElement):
       if (meta) modules.preloadEnvironment(meta.environment, quality());
       await progress(2, 'Strecke');
       const track = await modules.loadTrack(cfg.trackId);
+      // Scenery models and textures download while figures, physics and sky are prepared.
+      let sceneryDone = 0, sceneryStage = false;
+      const sceneryReady = modules.preloadTrackView(track, ctx(), (done, total) => {
+        sceneryDone = done / Math.max(1, total);
+        if (sceneryStage) events.emit('app:loading', { done: Math.round(58 + 16 * sceneryDone), total: 100, label: 'Landschaft' });
+      });
+      sceneryReady.catch(() => {});
       assetStage = true;
       await progress(10 + 35 * assetsDone, 'Figuren');
       await assetsReady;
@@ -133,7 +140,12 @@ export async function createApp(canvas: HTMLCanvasElement, uiRoot: HTMLElement):
       await progress(52, 'Himmel');
       await renderer.setEnvironment(track.meta.environment);
       renderer.bindSim(sim);
-      await progress(58, 'Landschaft');
+      assetStage = false;
+      sceneryStage = true;
+      await progress(58 + 16 * sceneryDone, 'Landschaft');
+      await sceneryReady.catch(() => {});
+      sceneryStage = false;
+      await progress(74, 'Landschaft');
       r.views.push(await modules.createTrackView(track, ctx()));
       await progress(84, 'Karts');
       for (const k of sim.karts) r.views.push(modules.createKartView(k, ctx()));
@@ -261,6 +273,7 @@ export async function createApp(canvas: HTMLCanvasElement, uiRoot: HTMLElement):
   if (ui && !q0.has('race')) {
     setTimeout(() => {
       modules.warmPhysics();
+      modules.preloadCommonScenery(ctx());
       void assets.load(modules.raceAssets({ trackId: '', player: 'otter', speedClass: SPEED_CLASSES[1], seed: 0, mode: 'race' }, quality())).catch(() => {});
     }, 600);
   }

@@ -21,7 +21,7 @@ import { createRenderer } from '../render/renderer'; // [render]
 import { preloadEnvironment } from '../render/environment'; // [render]
 import { createAssets, createKartView, raceAssets } from '../actors'; // [actors]
 import { loadTrack, trackList } from '../track'; // [track]
-import { createTrackView } from '../track/view/trackView'; // [track]
+import { createTrackView, preloadCommonScenery, preloadTrackView } from '../track/view/trackView'; // [track]
 import { createUI } from '../ui'; // [ui]
 import { createAudio } from '../audio'; // [ui]
 
@@ -55,6 +55,10 @@ export interface Modules {
   warmPhysics(): void;
   /** Starts fetching a track's environment map. */
   preloadEnvironment(env: EnvironmentDef, quality: QualitySettings): void;
+  /** Fetches the ground textures all tracks share (menu time). */
+  preloadCommonScenery(ctx: RenderContext): void;
+  /** Fetches the models and textures of a track's scenery. */
+  preloadTrackView(track: TrackRuntime, ctx: RenderContext, onProgress?: (done: number, total: number) => void): Promise<void>;
 }
 
 const testTrack = createTestTrack();
@@ -84,4 +88,6 @@ export const modules: Modules = {
   // [lead]
   warmPhysics: () => { void loadRapier().catch(() => {}); },
   preloadEnvironment: (env, quality) => preloadEnvironment(env, quality),
+  preloadCommonScenery: (ctx) => preloadCommonScenery(ctx),
+  preloadTrackView: (track, ctx, onProgress) => preloadTrackView(track, ctx, onProgress),
 };

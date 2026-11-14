@@ -176,16 +176,40 @@ function buildGate(t: BuiltTrack, ctx: RenderContext, parent: THREE.Object3D, na
   }
 }
 
-export async function createTrackView(track: TrackRuntime, ctx: RenderContext): Promise<View> {
-  if (!(track instanceof BuiltTrack)) return createStubTrackView(track, ctx);
+/**
+ * Fetches everything the track view needs from the network (models, textures). Results are
+ * cached, so the app can start this early and createTrackView() finds it all in place.
+ */
+export async function preloadTrackView(track: TrackRuntime, ctx: RenderContext, onProgress?: (done: number, total: number) => void): Promise<void> {
+  if (!(track instanceof BuiltTrack)) return;
   const t = track;
-  registerHazardViews();
+  const theme = themeFor(t.def.theme);
   const names = new Set<string>(['sheep', 'hay_bale', 'start_gate', 'balloon_arch', 'fence_wood', 'hedge', 'ramp']);
   for (const p of t.props) names.add(p.name);
   for (const st of t.structures) names.add(st.model);
   for (const d of t.decks) if (d.model) names.add(d.model);
   for (const n of [...names]) if (LOD_PROPS.has(n)) names.add(`${n}.lod1`);
-  try { await ctx.assets.load([...names].map((n) => `prop.${n}`)); } catch { /* placeholders */ }
+  const models = [...[...names].map((n) => `prop.${n}`), ...(theme.assets ?? [])];
+  const sets = [...TEXTURE_SETS, ...(theme.textureSets ?? [])];
+  const total = models.length + sets.length * 3;
+  let m = 0, x = 0;
+  const report = () => onProgress?.(m + x, total);
+  await Promise.all([
+    ctx.assets.load(models, (done) => { m = done; report(); }).catch(() => { /* placeholders */ }),
+    loadTextures(sets, ctx.quality.maxTextureSize, (done) => { x = done; report(); }),
+  ]);
+}
+
+/** Menu time: the ground textures every track shares. */
+export function preloadCommonScenery(ctx: RenderContext): void {
+  void loadTextures(TEXTURE_SETS, ctx.quality.maxTextureSize);
+}
+
+export async function createTrackView(track: TrackRuntime, ctx: RenderContext): Promise<View> {
+  if (!(track instanceof BuiltTrack)) return createStubTrackView(track, ctx);
+  const t = track;
+  registerHazardViews();
+  await preloadTrackView(t, ctx);
   const theme = themeFor(t.def.theme);
   const T = await loadTextures([...TEXTURE_SETS, ...(theme.textureSets ?? [])], ctx.quality.maxTextureSize);
   const terrMat = () => theme.terrainMaterial?.(T, ctx) ?? terrainMaterial(T);

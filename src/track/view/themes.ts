@@ -14,6 +14,8 @@ export interface ThemeExtras {
 export interface TrackTheme {
   /** Texture sets under public/assets/textures/ to load in addition to the default ones. */
   textureSets?: readonly string[];
+  /** Models (logical asset names) the theme needs; fetched early, in parallel with the rest. */
+  assets?: readonly string[];
   /** Replaces the grass terrain material (terrain, shoulders and backdrop ring). */
   terrainMaterial?(T: TexLib, ctx: RenderContext): THREE.Material;
   /** Replaces the default asphalt / dirt road material. */

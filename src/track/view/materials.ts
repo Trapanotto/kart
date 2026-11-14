@@ -18,33 +18,43 @@ const base = (): string => {
   try { return (import.meta as any).env?.BASE_URL ?? '/'; } catch { return '/'; }
 };
 
-async function probe(url: string): Promise<boolean> {
-  try {
-    const r = await fetch(url, { method: 'HEAD' });
-    const type = r.headers.get('content-type') ?? '';
-    return r.ok && !type.includes('text/html');
-  } catch {
-    return false;
+const texCache = new Map<string, Promise<THREE.Texture | null>>();
+
+/** One request per map (cached): a missing file or the dev server's index.html yields null. */
+function loadMap(url: string): Promise<THREE.Texture | null> {
+  let p = texCache.get(url);
+  if (!p) {
+    p = (async () => {
+      try {
+        const r = await fetch(url);
+        if (!r.ok || (r.headers.get('content-type') ?? '').includes('text/html')) return null;
+        const blobUrl = URL.createObjectURL(await r.blob());
+        try { return await new THREE.TextureLoader().loadAsync(blobUrl); } finally { URL.revokeObjectURL(blobUrl); }
+      } catch {
+        return null;
+      }
+    })();
+    texCache.set(url, p);
   }
+  return p;
 }
 
 /** Loads the texture sets that exist; missing maps stay undefined. */
-export async function loadTextures(names: readonly string[], maxSize: number): Promise<TexLib> {
-  const loader = new THREE.TextureLoader();
+export async function loadTextures(names: readonly string[], maxSize: number, onProgress?: (done: number, total: number) => void): Promise<TexLib> {
   const lib: TexLib = {};
+  let done = 0;
+  const total = names.length * 3;
   await Promise.all(names.map(async (name) => {
     const set: TexSet = {};
     lib[name] = set;
     await Promise.all((['color', 'normal', 'orm'] as const).map(async (map) => {
-      const url = `${base()}assets/textures/${name}/${map}.webp`;
-      if (!(await probe(url))) return;
-      try {
-        const t = await loader.loadAsync(url);
-        t.wrapS = t.wrapT = THREE.RepeatWrapping;
-        t.anisotropy = maxSize >= 2048 ? 8 : 4;
-        t.colorSpace = map === 'color' ? THREE.SRGBColorSpace : THREE.NoColorSpace;
-        set[map] = t;
-      } catch { /* fall back to flat colour */ }
+      const t = await loadMap(`${base()}assets/textures/${name}/${map}.webp`);
+      onProgress?.(++done, total);
+      if (!t) return; // fall back to flat colour
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.anisotropy = maxSize >= 2048 ? 8 : 4;
+      t.colorSpace = map === 'color' ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+      set[map] = t;
     }));
   }));
   return lib;

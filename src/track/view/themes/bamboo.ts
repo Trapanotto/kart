@@ -21,6 +21,7 @@ registerTheme('bamboo', {
   terrainMaterial: (T) => forestFloor(T),
   roadMaterial: (T) => flagstoneRoad(T),
   backdropTrees: false,
+  assets: ['prop.bamboo_lantern_hang', 'prop.bamboo_log', 'prop.bamboo_clump.lod1'],
   async extend(track, ctx, root, T) {
     registerBambooEntityViews();
     try { await ctx.assets.load(['prop.bamboo_lantern_hang', 'prop.bamboo_log', 'prop.bamboo_clump.lod1']); } catch { /* placeholders */ }
