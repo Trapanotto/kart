@@ -1214,8 +1214,11 @@ export class BuiltTrack implements TrackRuntime {
     for (const h of this.hazards) { for (const e of h.entities) e.dead = true; h.entities.length = 0; h.next = 0; }
     this.applyTags();
     if (changed) sim.events.emit('track:changed', { lap: 0, event: 'reset' });
-    return [];
+    this.script ??= this.def.script?.create(this) ?? null;
+    return this.script?.createEntities?.(sim) ?? [];
   }
+  /** Per-track sim hooks (TrackDef.script). Public so a theme view can read its state. */
+  script: ReturnType<NonNullable<TrackDef['script']>['create']> | null | undefined;
 
   setLap(lap: number, sim: RaceSim): void {
     if (lap <= this.state.lap) return;
@@ -1231,6 +1234,7 @@ export class BuiltTrack implements TrackRuntime {
       sim.events.emit('track:changed', { lap, event: e.name });
       sim.events.emit('track:event', { name: e.name, pos });
     }
+    this.script?.setLap?.(lap, sim);
   }
 
   step(sim: RaceSim, dt: number): void {
@@ -1239,6 +1243,7 @@ export class BuiltTrack implements TrackRuntime {
     for (const k of sim.karts) if (!k.race.finished && k.race.lap > lead) lead = k.race.lap;
     if (lead > this.state.lap) this.setLap(lead, sim);
     for (const h of this.hazards) updateHazard(h, this.host, sim, dt);
+    this.script?.step?.(sim, dt);
   }
 }
 

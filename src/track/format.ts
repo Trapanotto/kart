@@ -1,3 +1,4 @@
+import type { RaceSim, SimEntity } from '../core/types';
 // Declarative, hand-authored track definition. Owner: track.
 // A designer writes one `TrackDef` per track (see src/track/tracks/kleeblattTal.ts and README.md);
 // `buildTrack()` turns it into a TrackRuntime (headless) plus the data the track view needs.
@@ -317,6 +318,21 @@ export interface LapEventDef {
   at?: Progress;
 }
 
+/**
+ * Hooks for sim behaviour that only one track needs (a rising flood, an avalanche, a
+ * collapsing bridge, extra hazards). `track` is the BuiltTrack. Keep per-race state in the
+ * object returned by `create`, which is called once per built track.
+ */
+export interface TrackScript {
+  create(track: any): {
+    /** Called at race start, after the declarative reset. Return extra entities. */
+    createEntities?(sim: RaceSim): SimEntity[];
+    /** Called after the declarative lap events of a new leader lap were applied. */
+    setLap?(lap: number, sim: RaceSim): void;
+    step?(sim: RaceSim, dt: number): void;
+  };
+}
+
 export interface TrackDef {
   id: string;
   name: string;
@@ -326,6 +342,10 @@ export interface TrackDef {
   order?: number;
   environment: EnvironmentDef;
   music?: string;
+  /** Visual theme, see view/themes.ts. Default 'meadow' (Kleeblatt-Tal look). */
+  theme?: string;
+  /** Track-specific sim logic beyond the declarative format. Headless and deterministic. */
+  script?: TrackScript;
   /** Closed main loop. The first point is the start line (progress 0). */
   main: ControlPoint[];
   /** Default half width where points do not set one. */

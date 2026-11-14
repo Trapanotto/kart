@@ -14,6 +14,8 @@ import {
   shoulderGeometry, terrainGeometry, waterGeometry,
   COARSE_FAR,
 } from './meshes';
+import { themeFor } from './themes';
+import './themes/index';
 import { buildProps, LOD_PROPS, mat, placeholder, tileAlong } from './props';
 
 interface Door { pivot: THREE.Object3D; open: number }
@@ -184,18 +186,20 @@ export async function createTrackView(track: TrackRuntime, ctx: RenderContext): 
   for (const d of t.decks) if (d.model) names.add(d.model);
   for (const n of [...names]) if (LOD_PROPS.has(n)) names.add(`${n}.lod1`);
   try { await ctx.assets.load([...names].map((n) => `prop.${n}`)); } catch { /* placeholders */ }
-  const T = await loadTextures(TEXTURE_SETS, ctx.quality.maxTextureSize);
+  const theme = themeFor(t.def.theme);
+  const T = await loadTextures([...TEXTURE_SETS, ...(theme.textureSets ?? [])], ctx.quality.maxTextureSize);
+  const terrMat = () => theme.terrainMaterial?.(T, ctx) ?? terrainMaterial(T);
 
   const root = new THREE.Group();
   root.name = 'track';
 
   // ground: road on top, shoulders pushed back, terrain beneath
-  mesh(roadGeometry(t), offset(roadMaterial(T), -1, -1), false, root, 'road');
-  mesh(shoulderGeometry(t), offset(terrainMaterial(T), 1, 1), false, root, 'shoulders');
-  mesh(terrainGeometry(t, ctx.quality.tier === 'mobile' ? 2 : 1), terrainMaterial(T), false, root, 'terrain');
+  mesh(roadGeometry(t), offset((theme.roadMaterial?.(T, ctx) ?? roadMaterial(T)) as ReturnType<typeof roadMaterial>, -1, -1), false, root, 'road');
+  mesh(shoulderGeometry(t), offset(terrMat() as ReturnType<typeof terrainMaterial>, 1, 1), false, root, 'shoulders');
+  mesh(terrainGeometry(t, ctx.quality.tier === 'mobile' ? 2 : 1), terrMat(), false, root, 'terrain');
   const back = backdropGeometry(t);
-  mesh(back.geo, terrainMaterial(T), false, root, 'backdrop');
-  {
+  mesh(back.geo, terrMat(), false, root, 'backdrop');
+  if (theme.backdropTrees !== false) {
     // distant forest: low-poly round crowns (tinted per instance) on short trunks
     const crownGeo = new THREE.IcosahedronGeometry(3.2, 0);
     crownGeo.scale(1, 1.15, 1);
@@ -288,8 +292,10 @@ export async function createTrackView(track: TrackRuntime, ctx: RenderContext): 
   let version = -1;
   const doorsTag = t.structures[0]?.doorsTag;
   void placeholder;
+  const extras = (await theme.extend?.(t, ctx, root, T)) ?? {};
   return {
-    update(dt) {
+    update(dt, c) {
+      extras.update?.(dt, c ?? ctx);
       if (t.state.version !== version) {
         version = t.state.version;
         for (const b of batches) if (b.tag) { const on = t.state.tags.get(b.tag) ?? true; for (const m of b.meshes) m.visible = on; }
@@ -308,6 +314,7 @@ export async function createTrackView(track: TrackRuntime, ctx: RenderContext): 
       }
     },
     dispose() {
+      extras.dispose?.();
       ctx.scene.remove(root);
       root.traverse((o) => {
         const m = o as THREE.Mesh;
