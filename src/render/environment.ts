@@ -11,6 +11,7 @@ import {
 import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
 import { CSMShadowNode } from 'three/examples/jsm/csm/CSMShadowNode.js';
 import type { EnvironmentDef, QualitySettings } from '../core/types';
+import { assetExists, assetUrl } from '../core/assetUrl';
 import { groundColor, renderTime, skyColor, sunColor, sunDirection, type N } from './shared';
 
 const GROUND_TINT = new Color('#5d7a45');
@@ -125,7 +126,8 @@ async function loadHdr(name: string): Promise<DataTexture | null> {
   if (!hdrCache.has(name)) {
     hdrCache.set(name, (async () => {
       try {
-        const url = `${import.meta.env.BASE_URL}assets/env/${name}.hdr`;
+        if (!assetExists(`assets/env/${name}.hdr`)) return null;
+        const url = assetUrl(`assets/env/${name}.hdr`);
         const res = await fetch(url);
         if (!res.ok) return null;
         const buf = await res.arrayBuffer();

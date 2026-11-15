@@ -2,6 +2,7 @@
 // Texture sets come from public/assets/textures/<set>/{color,normal,orm}.webp (envart). Every
 // material has a procedural fallback, so missing files never break the track.
 import * as THREE from 'three/webgpu';
+import { assetExists, assetUrl } from '../../core/assetUrl';
 import {
   abs, attribute, clamp, color, float, fract, max, mix, mx_noise_float, normalWorld, positionWorld, sin, smoothstep, step,
   texture, time, uv, vec2, vec3,
@@ -48,7 +49,8 @@ export async function loadTextures(names: readonly string[], maxSize: number, on
     const set: TexSet = {};
     lib[name] = set;
     await Promise.all((['color', 'normal', 'orm'] as const).map(async (map) => {
-      const t = await loadMap(`${base()}assets/textures/${name}/${map}.webp`);
+      const file = `assets/textures/${name}/${map}.webp`;
+      const t = assetExists(file) ? await loadMap(assetUrl(file)) : null;
       onProgress?.(++done, total);
       if (!t) return; // fall back to flat colour
       t.wrapS = t.wrapT = THREE.RepeatWrapping;

@@ -79,6 +79,8 @@ export interface Post {
   setResolutionScale(s: number): void;
   updateSun(camera: PerspectiveCamera): void;
   render(): void;
+  /** Compiles the scene pass pipelines asynchronously (same configuration as render()). */
+  precompile(): Promise<void>;
   dispose(): void;
 }
 
@@ -242,6 +244,7 @@ export function createPost(renderer: WebGPURenderer, scene: Scene, camera: Persp
       post.sunVis.value = inFront ? Math.max(0, Math.min(1, (1.6 - edge) / 0.6)) : 0;
     },
     render() { pipeline.render(); },
+    async precompile() { await scenePass?.compileAsync?.(renderer); },
     dispose() { for (const d of disposables) d.dispose?.(); pipeline.dispose(); },
   };
   return self;

@@ -602,6 +602,8 @@ export interface GameRenderer {
   bindSim(sim: RaceSim | null): void;
   resize(width: number, height: number): void;
   render(dt: number): void;
+  /** Compiles the shaders of everything in the scene without blocking the page (loading screen). */
+  precompile?(): Promise<void>;
   /** Renderer statistics for the debug overlay. */
   stats(): { fps: number; drawCalls: number; triangles: number; backend: string };
   dispose(): void;

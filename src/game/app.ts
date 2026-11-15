@@ -51,6 +51,7 @@ export async function createApp(canvas: HTMLCanvasElement, uiRoot: HTMLElement):
   let paused = false;
   let loading = false;
   let acc = 0;
+  let compiling = false;
 
   const ctx = (): RenderContext => renderer.ctx;
   let sizeW = -1, sizeH = -1;
@@ -85,7 +86,11 @@ export async function createApp(canvas: HTMLCanvasElement, uiRoot: HTMLElement):
       endRace();
       const cfg: RaceConfig = { ...config, assists: config.assists ?? { autoThrottle: settings.autoThrottle, steerAssist: settings.steerAssist } };
       // One overall progress value (0..100) across all loading stages.
+      const t0 = performance.now();
+      const stages: Record<string, number> = {};
+      (app as { loadTimes?: unknown }).loadTimes = stages;
       const progress = async (pct: number, label: string) => {
+        stages[`${Math.round(pct)} ${label}`.trim()] = Math.round(performance.now() - t0);
         events.emit('app:loading', { done: Math.round(pct), total: 100, label });
         await new Promise((r) => setTimeout(r, 0)); // let the bar paint
       };
@@ -186,11 +191,19 @@ export async function createApp(canvas: HTMLCanvasElement, uiRoot: HTMLElement):
     const below = p.clone(); below.y -= 40;
     for (const fx of ['burst', 'dust', 'splash', 'sparks', 'confetti', 'smoke', 'leaves', 'stars', 'break.hay', 'break.crate', 'pickup', 'shield.pop', 'honey.splat', 'zap']) c.vfx.spawn(fx, below);
     try {
-      for (let i = 0; i < 4; i++) {
-        await progress(88 + i * 3, 'Shader');
+      // Shaders compile in the background first (the page stays responsive, pipelines build in
+      // parallel); the frames afterwards upload meshes and textures and catch what is left.
+      const tc = performance.now();
+      await progress(88, 'Shader');
+      // Experimental (?asyncshaders): measured no faster than the plain frames on desktop.
+      if (new URLSearchParams(location.search).has('asyncshaders')) await precompileShaders();
+      const tf = performance.now();
+      for (let i = 0; i < 3; i++) {
+        await progress(92 + i * 3, 'Shader');
         frame(SIM_DT);
-        await new Promise((res) => setTimeout(res, 40));
+        await new Promise((res) => setTimeout(res, 16));
       }
+      void tc; void tf;
     } finally {
       for (const o of culled) o.frustumCulled = true;
       c.scene.remove(extras);
@@ -198,7 +211,22 @@ export async function createApp(canvas: HTMLCanvasElement, uiRoot: HTMLElement):
     await progress(100, '');
   }
 
+  /**
+   * Background shader compile. Meanwhile the frame loop must not draw (a draw would compile the
+   * same shaders synchronously), and three's compile scheduler, which waits for the next animation
+   * frame after every 8 ms of work, is given a timer instead: it then spends its time compiling
+   * rather than waiting, also in a tab that gets no animation frames.
+   */
+  async function precompileShaders(): Promise<void> {
+    if (!renderer.precompile) return;
+    const raf = window.requestAnimationFrame;
+    compiling = true;
+    window.requestAnimationFrame = (cb) => setTimeout(() => cb(performance.now()), 0) as unknown as number;
+    try { await renderer.precompile(); } finally { window.requestAnimationFrame = raf; compiling = false; }
+  }
+
   function frame(dt: number): void {
+    if (compiling) return;
     // Phones change the canvas size without a reliable resize event (rotation, browser bars).
     if (canvas.clientWidth !== sizeW || canvas.clientHeight !== sizeH) resize();
 

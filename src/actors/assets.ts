@@ -1,4 +1,5 @@
 // Asset library: GLB loading with Draco, caching, skinned-mesh-safe cloning and placeholders. Owner: actors.
+import { assetExists, assetUrl } from '../core/assetUrl';
 import * as THREE from 'three/webgpu';
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
@@ -117,7 +118,9 @@ export function createAssets(): ActorAssetLibrary {
     if (cache.has(name) || missing.has(name)) return Promise.resolve();
     const p0 = pending.get(name);
     if (p0) return p0;
-    const url = `${baseUrl()}assets/models/${name}.glb`;
+    // The build knows which files exist: nothing is requested for a model that was never made.
+    if (!assetExists(`assets/models/${name}.glb`)) { missing.add(name); return Promise.resolve(); }
+    const url = assetUrl(`assets/models/${name}.glb`);
     const p = loader.loadAsync(url)
       .then(async (gltf: GLTF) => {
         let skinned = false;

@@ -270,6 +270,10 @@ export function createRenderer(canvas: HTMLCanvasElement, quality: QualitySettin
       if (fpsAcc >= 500) { fps = (frames * 1000) / fpsAcc; frames = 0; fpsAcc = 0; }
       overlay?.update();
     },
+    async precompile() {
+      if (!ready || disposed || !pipeline) return;
+      try { camera.updateMatrixWorld(); await pipeline.precompile(); } catch (e) { console.warn('[render] precompile failed', e); }
+    },
     stats: () => ({ fps, drawCalls: three.info.render.drawCalls, triangles: three.info.render.triangles, backend }),
     dispose() {
       disposed = true;
